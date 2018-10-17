@@ -1,0 +1,9 @@
+buildAndRun.bat
+debug
+go-backup-agent.exe
+testscripts/pre-backup-lock.sh
+vendor/
+testBackups/
+testscripts/
+testRestores/
+osb-backup-agent.exe
