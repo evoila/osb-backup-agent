@@ -5,7 +5,7 @@ This project holds a small go web agent for backup and restore actions for bosh,
 Currently implemented cloud storages: **S3**
 
 ## Installation ##
-Download this repository and its dependencies via ```glide update```.
+Download this repository and then get its dependencies via ```glide update```.
 
 
 
@@ -81,7 +81,7 @@ Please note that objects in the parameters object can not have nested objects, a
 
 ## Functionality ##
 The agent calls a predefined set of shell scripts in order to trigger the backup or restore procedure. These scripts have to be in the `/var/vcap/jobs/backup` directory. Generally speaking there are three stages: Pre, Action, Post. 
-  These files have to be located or will be placed in the directory `/tmp/backup`.
+  These files have to be located or will be placed in the respective directories set by the environment variables.
 
 #### Backup ####
 The agent runs following shell scripts from top to bottom:
@@ -91,7 +91,7 @@ The agent runs following shell scripts from top to bottom:
 - `backup-cleanup`
 - `post-backup-unlock`
 
-In the backup stage, after the script generated the file to upload (name consists of `<host>_YYYY_MM_DD_\<dbname>.tar.gz`), the agent uploads the backup file from  the directory `/tmp/backup` to the cloud storage using the given information and credentials.
+In the backup stage, after the script generated the file to upload (name consists of `<host>_YYYY_MM_DD_<dbname>.tar.gz`), the agent uploads the backup file from the set directory to the cloud storage using the given information and credentials.
 
 #### Restore ####
 The agent runs following shell scripts from top to bottom:
@@ -100,7 +100,7 @@ The agent runs following shell scripts from top to bottom:
 - `restore-cleanup`
 - `post-restore-unlock`
 
-In the restore stage, before the dedicated script starts the actual restore, the agent downloads the backed up restore file from the cloud storage, using the given information and credentials, and puts it in the directory `/tmp/backup`.
+In the restore stage, before the dedicated script starts the actual restore, the agent downloads the backed up restore file from the cloud storage, using the given information and credentials, and puts it in the dedicated directory.
 
 ## Version ##
 v0.2
