@@ -16,17 +16,22 @@ import (
 	"github.com/evoila/osb-backup-agent/shell"
 )
 
-// Name of the script to call for the pre-backup-lock stage
+// NamePreBackupLock : Name of the script to call for the pre-backup-lock stage
 const NamePreBackupLock = "pre-backup-lock"
-// Name of the script to call for the pre-backup-check stage
+
+// NamePreBackupCheck : Name of the script to call for the pre-backup-check stage
 const NamePreBackupCheck = "pre-backup-check"
-// Name of the script to call for the backup stage
+
+// NameBackup : Name of the script to call for the backup stage
 const NameBackup = "backup"
-// Name of the script to call for the backup-cleanup stage
+
+// NameBackupCleanup :  Name of the script to call for the backup-cleanup stage
 const NameBackupCleanup = "backup-cleanup"
-// Name of the script to call for the post-backup-unlock stage
+
+// NamePostBackupUnlock : Name of the script to call for the post-backup-unlock stage
 const NamePostBackupUnlock = "post-backup-unlock"
 
+// BackupRequest : Request handler for backup requests.
 func BackupRequest(w http.ResponseWriter, r *http.Request) {
 	log.Println("Backup request received.")
 
@@ -40,7 +45,7 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		errorlog.LogError("Backup failed during body deserialization due to '", err.Error(), "'")
-		var response = httpBodies.ErrorResponse{"Backup failed.", "Body Deserialization", err.Error()}
+		var response = httpBodies.ErrorResponse{Message: "Backup failed.", State: "Body Deserialization", ErrorMessage: err.Error()}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(400)
 		json.NewEncoder(w).Encode(response)
@@ -111,7 +116,7 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 			errorMessage = err.Error()
 		}
 		errorlog.LogError("Backup failed due to '", errorMessage, "'")
-		var response = httpBodies.ErrorResponse{"backup failed.", state, errorMessage}
+		var response = httpBodies.ErrorResponse{Message: "backup failed.", State: state, ErrorMessage: errorMessage}
 		w.WriteHeader(500)
 		json.NewEncoder(w).Encode(response)
 
