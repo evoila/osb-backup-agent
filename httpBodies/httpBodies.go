@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/evoila/go-backup-agent/errorlog"
+	"github.com/evoila/osb-backup-agent/errorlog"
 )
 
 type BackupResponse struct {

@@ -9,8 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/evoila/go-backup-agent/errorlog"
-	"github.com/evoila/go-backup-agent/httpBodies"
+	"github.com/evoila/osb-backup-agent/errorlog"
+	"github.com/evoila/osb-backup-agent/httpBodies"
 )
 
 func UploadFile(filename, path string, body httpBodies.BackupBody) error {

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/evoila/go-backup-agent/errorlog"
+	"github.com/evoila/osb-backup-agent/errorlog"
 )
 
 //var directory = "/var/vcap/jobs/backup"

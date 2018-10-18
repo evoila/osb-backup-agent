@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/evoila/go-backup-agent/configuration"
+	"github.com/evoila/osb-backup-agent/configuration"
 )
 
 func BasicAuth(w http.ResponseWriter, r *http.Request) bool {

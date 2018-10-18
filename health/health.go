@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/evoila/go-backup-agent/security"
+	"github.com/evoila/osb-backup-agent/security"
 )
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {

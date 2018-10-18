@@ -6,12 +6,12 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/evoila/go-backup-agent/configuration"
-	"github.com/evoila/go-backup-agent/errorlog"
-	"github.com/evoila/go-backup-agent/httpBodies"
-	"github.com/evoila/go-backup-agent/s3"
-	"github.com/evoila/go-backup-agent/security"
-	"github.com/evoila/go-backup-agent/shell"
+	"github.com/evoila/osb-backup-agent/configuration"
+	"github.com/evoila/osb-backup-agent/errorlog"
+	"github.com/evoila/osb-backup-agent/httpBodies"
+	"github.com/evoila/osb-backup-agent/s3"
+	"github.com/evoila/osb-backup-agent/security"
+	"github.com/evoila/osb-backup-agent/shell"
 )
 
 type response struct {

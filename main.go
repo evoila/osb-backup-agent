@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/evoila/go-backup-agent/configuration"
-	"github.com/evoila/go-backup-agent/webclient"
+	"github.com/evoila/osb-backup-agent/configuration"
+	"github.com/evoila/osb-backup-agent/webclient"
 )
 
 func main() {

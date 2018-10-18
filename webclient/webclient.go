@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/evoila/go-backup-agent/backup"
-	"github.com/evoila/go-backup-agent/configuration"
-	"github.com/evoila/go-backup-agent/health"
-	"github.com/evoila/go-backup-agent/restore"
+	"github.com/evoila/osb-backup-agent/backup"
+	"github.com/evoila/osb-backup-agent/configuration"
+	"github.com/evoila/osb-backup-agent/health"
+	"github.com/evoila/osb-backup-agent/restore"
 	"github.com/gorilla/mux"
 )
 

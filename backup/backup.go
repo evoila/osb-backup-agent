@@ -8,18 +8,23 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/evoila/go-backup-agent/configuration"
-	"github.com/evoila/go-backup-agent/errorlog"
-	"github.com/evoila/go-backup-agent/httpBodies"
-	"github.com/evoila/go-backup-agent/s3"
-	"github.com/evoila/go-backup-agent/security"
-	"github.com/evoila/go-backup-agent/shell"
+	"github.com/evoila/osb-backup-agent/configuration"
+	"github.com/evoila/osb-backup-agent/errorlog"
+	"github.com/evoila/osb-backup-agent/httpBodies"
+	"github.com/evoila/osb-backup-agent/s3"
+	"github.com/evoila/osb-backup-agent/security"
+	"github.com/evoila/osb-backup-agent/shell"
 )
 
+// Name of the script to call for the pre-backup-lock stage
 const NamePreBackupLock = "pre-backup-lock"
+// Name of the script to call for the pre-backup-check stage
 const NamePreBackupCheck = "pre-backup-check"
+// Name of the script to call for the backup stage
 const NameBackup = "backup"
+// Name of the script to call for the backup-cleanup stage
 const NameBackupCleanup = "backup-cleanup"
+// Name of the script to call for the post-backup-unlock stage
 const NamePostBackupUnlock = "post-backup-unlock"
 
 func BackupRequest(w http.ResponseWriter, r *http.Request) {
