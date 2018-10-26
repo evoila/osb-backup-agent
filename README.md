@@ -19,6 +19,7 @@ The agent uses environment variables to configurate its parameters.
 | client_port | 8000 | The port the client will use for the http interface |
 | directory_backup | /tmp/backups | The directory in which the agent looks for files to upload to the cloud storage. |
 | directory_restore | /tmp/restores | The directory in which the agent will put the downloaded restore file from the cloud storage. |
+| scrips_path | /tmp/scrips | The directory in which the agent will look for the backup scrips. Defaults to `/var/vcap/jobs/backup-agent/backup`  |
 
 
 ## Endpoints ##
@@ -80,8 +81,8 @@ Please note that objects in the parameters object can not have nested objects, a
 Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the shell scripts to work with.
 
 ## Functionality ##
-The agent calls a predefined set of shell scripts in order to trigger the backup or restore procedure. These scripts have to be in the `/var/vcap/jobs/backup` directory. Generally speaking there are three stages: Pre, Action, Post. 
-  These files have to be located or will be placed in the respective directories set by the environment variables.
+The agent calls a predefined set of shell scripts in order to trigger the backup or restore procedure. Generally speaking there are three stages: Pre, Action, Post. 
+These files have to be located or will be placed in the respective directories set by the environment variables.
 
 #### Backup ####
 The agent runs following shell scripts from top to bottom:

@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/evoila/osb-backup-agent/errorlog"
+	"github.com/evoila/osb-backup-agent/configuration"
 )
 
-//var directory = "/var/vcap/jobs/backup"
-var Directory = "testscripts"
+var Directory = configuration.GetScriptsPath()
 
 func ExecuteScriptForStage(stageName string, jsonParams []string, params ...string) (bool, error) {
 	var found, fileName = CheckForBothExistingFiles(Directory, stageName)
@@ -101,7 +101,6 @@ func GetPathToFile(directory, fileName string) string {
 func addEnvVars(params []string, cmd *exec.Cmd) {
 	// Currently not setting os ENV VAR for the shells !
 	//cmd.Env = os.Environ()
-
 	for _, param := range params {
 		cmd.Env = append(cmd.Env, param)
 	}

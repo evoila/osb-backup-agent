@@ -14,6 +14,10 @@ func GetPassword() string {
 	return getStringEnvVariable("client_password")
 }
 
+func GetScriptsPath() string {
+	return getStringEnvVariableWithDefault("scripts_path", "/var/vcap/jobs/backup-agent/backup")
+}
+
 func GetPort() int {
 	output := getStringEnvVariable("client_port")
 	if parseInt(output) < 0 {
@@ -36,7 +40,15 @@ func getStringEnvVariable(variable string) string {
 	if output == "" {
 		log.Println("[ERROR]", variable, "is not set.")
 	}
-	return os.Getenv(variable)
+	return output
+}
+
+func getStringEnvVariableWithDefault(variable string, default_variable string) string {
+	output := getStringEnvVariable(variable)
+	if output == "" {
+		output = default_variable
+	}
+	return output
 }
 
 func parseInt(number string) int {

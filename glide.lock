@@ -1,8 +1,8 @@
 hash: be0e36f9d2676bc3e019beda9c5101252ad3d02a256a39660e9f7edd8302cd14
-updated: 2018-10-18T09:06:48.018824+02:00
+updated: 2018-10-26T12:56:32.329854+02:00
 imports:
 - name: github.com/aws/aws-sdk-go
-  version: c8fb427d1325bb9b11983abd96e3283bf4c21a61
+  version: 122ae0c8df7aaa61fec3de8ae3b8d584d018467a
   subpackages:
   - aws
   - aws/awserr
@@ -21,6 +21,7 @@ imports:
   - aws/request
   - aws/session
   - aws/signer/v4
+  - internal/ini
   - internal/s3err
   - internal/sdkio
   - internal/sdkrand
@@ -38,10 +39,8 @@ imports:
   - service/s3/s3iface
   - service/s3/s3manager
   - service/sts
-- name: github.com/go-ini/ini
-  version: 9c8236e659b76e87bf02044d06fde8683008ff3e
 - name: github.com/gorilla/mux
-  version: deb579d6e030503f430978ee229008b9bc912d40
+  version: 521ea7b17d02faf8d3afea6737573942ceac59c5
 - name: github.com/jmespath/go-jmespath
   version: c2b33e8439af944379acbdd9c3a5fe0bc44bd8a5
 testImports: []
