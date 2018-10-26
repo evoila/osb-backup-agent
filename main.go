@@ -23,11 +23,13 @@ func PrintOutConfig() {
 	var port = configuration.GetPort()
 	var backupDirectory = configuration.GetBackupDirectory()
 	var restoreDirectory = configuration.GetRestoreDirectory()
+	var scriptsPath = configuration.GetScriptsPath()
 	log.Println("Using following configuration: ",
 		"\nclient_username :", username,
 		"\nclient_password :", pw,
 		"\nclient_port :", port,
 		"\ndirectory_backup :", backupDirectory,
-		"\ndirectory_restore :", restoreDirectory)
+		"\ndirectory_restore :", restoreDirectory,
+		"\nscripts_path :", scriptsPath)
 
 }
