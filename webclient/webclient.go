@@ -37,7 +37,7 @@ func StartWebAgent() {
 func setUpEndpoints(router *mux.Router) {
 	log.Println("Setting up endpoints:")
 	log.Println("GET /status")
-	router.HandleFunc("/health", health.HealthCheck).Methods("GET")
+	router.HandleFunc("/status", health.HealthCheck).Methods("GET")
 	log.Println("POST /backup")
 	router.HandleFunc("/backup", backup.BackupRequest).Methods("POST")
 	log.Println("PUT /restore")
