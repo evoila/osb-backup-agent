@@ -40,11 +40,7 @@ func ExecShellScript(path string, jsonParams []string, params []string) (bytes.B
 	var cmd *exec.Cmd
 
 	if len(params) > 0 {
-		if len(params) == 4 {
-			log.Println("Using follwing parameters: [", params[0], params[1], "<redacted>", params[3], "]")
-			cmd = exec.Command("bash", path, params[0], params[1], params[2], params[3])
-
-		} else if len(params) == 5 {
+		if len(params) == 5 {
 			log.Println("Using follwing parameters: [", params[0], params[1], "<redacted>", params[3], params[4], "]")
 			cmd = exec.Command("bash", path, params[0], params[1], params[2], params[3], params[4])
 		} else {

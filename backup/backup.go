@@ -75,7 +75,7 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 		state = NameBackup
 		log.Println("> Starting", state, "stage.")
 		status, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
-			body.Backup.Host, body.Backup.User, body.Backup.Password, body.Backup.Database)
+			body.Backup.Host, body.Backup.User, body.Backup.Password, body.Backup.Database, GetBackupFilename(body.Backup.Host, body.Backup.Database))
 		if err == nil {
 
 			if body.Destination.Type == "s3" {
