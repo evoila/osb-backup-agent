@@ -74,8 +74,9 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 	if status {
 		state = NameBackup
 		log.Println("> Starting", state, "stage.")
+		var path = GetBackupPath(body.Backup.Host, body.Backup.Database)
 		status, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
-			body.Backup.Host, body.Backup.User, body.Backup.Password, body.Backup.Database, GetBackupFilename(body.Backup.Host, body.Backup.Database))
+			body.Backup.Host, body.Backup.User, body.Backup.Password, body.Backup.Database, path)
 		if err == nil {
 
 			if body.Destination.Type == "s3" {
@@ -125,9 +126,9 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func uploadToS3(body httpBodies.BackupBody) (string, error) {
-	var backupDirectory = configuration.GetBackupDirectory()
 	var fileName = GetBackupFilename(body.Backup.Host, body.Backup.Database)
-	var path = errorlog.Concat([]string{backupDirectory, "/", fileName}, "")
+	var backupDirectory = configuration.GetBackupDirectory()
+	var path = GetBackupPath(body.Backup.Host, body.Backup.Database)
 	if !shell.CheckForExistingFile(backupDirectory, fileName) {
 		return "", errorlog.LogError("File not found: ", path)
 	}
@@ -136,6 +137,13 @@ func uploadToS3(body httpBodies.BackupBody) (string, error) {
 	s3.UploadFile(fileName, path, body)
 
 	return fileName, nil
+}
+
+func GetBackupPath(host, database string) string {
+	var backupDirectory = configuration.GetBackupDirectory()
+	var fileName = GetBackupFilename(host, database)
+	var path = errorlog.Concat([]string{backupDirectory, "/", fileName}, "")
+	return path;
 }
 
 func GetBackupFilename(host, database string) string {
