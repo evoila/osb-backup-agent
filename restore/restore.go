@@ -72,8 +72,8 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		status, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
-			body.Restore.Host, body.Restore.User, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.File)
-		log. rintln("> Finishing", state, "stage.")
+			body.Restore.Host, body.Restore.User, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(),body.Destination.File)
+		log.Println("> Finishing", state, "stage.")
 	}
 	if status {
 		state = NameRestoreCleanup
