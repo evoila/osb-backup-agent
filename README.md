@@ -58,7 +58,7 @@ Please note that objects in the parameters object can not have nested objects, a
 #### Restore body ####
 ```json
 {
-    "source" : {
+    "destination" : {
         "type": "s3",
         "bucket": "bucketName",
         "region": "regionName",
