@@ -79,7 +79,7 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 			body.Backup.Host, body.Backup.User, body.Backup.Password, body.Backup.Database, path)
 		if err == nil {
 
-			if body.Destination.Type == "s3" {
+			if body.Destination.Type == "S3" {
 				filename, err = uploadToS3(body)
 				if err != nil {
 					status = false
@@ -143,7 +143,7 @@ func GetBackupPath(host, database string) string {
 	var backupDirectory = configuration.GetBackupDirectory()
 	var fileName = GetBackupFilename(host, database)
 	var path = errorlog.Concat([]string{backupDirectory, "/", fileName}, "")
-	return path;
+	return path
 }
 
 func GetBackupFilename(host, database string) string {

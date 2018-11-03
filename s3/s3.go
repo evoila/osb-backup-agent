@@ -73,7 +73,7 @@ func DownloadFile(filename, path string, body httpBodies.RestoreBody) error {
 	log.Println("Creating file at", path)
 	file, err := os.Create(path)
 	if err != nil {
-		return errorlog.LogError("Failed to create file ", path, "due to '", err.Error(), "'")
+		return errorlog.LogError("Failed to create file ", path, " due to '", err.Error(), "'")
 	}
 	defer file.Close()
 

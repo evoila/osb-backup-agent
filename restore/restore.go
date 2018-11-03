@@ -60,7 +60,7 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 		state = NameRestore
 		log.Println("> Starting", state, "stage.")
 
-		if body.Destination.Type == "s3" {
+		if body.Destination.Type == "S3" {
 			err = downloadFromS3(body)
 			if err != nil {
 				status = false
