@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/evoila/osb-backup-agent/configuration"
 	"github.com/evoila/osb-backup-agent/errorlog"
@@ -117,7 +118,16 @@ func downloadFromS3(body httpBodies.RestoreBody) error {
 	var restoreDirectory = configuration.GetRestoreDirectory()
 	var path = errorlog.Concat([]string{restoreDirectory, "/", body.Destination.File}, "")
 	if shell.CheckForExistingFile(restoreDirectory, body.Destination.File) {
-		return errorlog.LogError("File already exists: ", path)
+		if configuration.IsAllowedToDeleteFiles() {
+			log.Println("Removing already existing file:", path)
+			err := os.Remove(path)
+
+			if err != nil {
+				return errorlog.LogError(err.Error())
+			}
+		} else {
+			return errorlog.LogError("File already exists: ", path)
+		}
 	}
 	log.Println("Using file at", path)
 
