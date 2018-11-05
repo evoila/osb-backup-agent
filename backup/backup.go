@@ -43,7 +43,11 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 	var body httpBodies.BackupBody
 	err := decoder.Decode(&body)
 
-	if err != nil {
+	missingFields := !httpBodies.CheckForMissingFieldsInBackupBody(body)
+	if err != nil || missingFields {
+		if err == nil {
+			err = errors.New("Body is missing essential fields.")
+		}
 		errorlog.LogError("Backup failed during body deserialization due to '", err.Error(), "'")
 		var response = httpBodies.ErrorResponse{Message: "Backup failed.", State: "Body Deserialization", ErrorMessage: err.Error()}
 		w.Header().Set("Content-Type", "application/json")
@@ -76,7 +80,7 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 		log.Println("> Starting", state, "stage.")
 		var path = GetBackupPath(body.Backup.Host, body.Backup.Database)
 		status, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
-			body.Backup.Host, body.Backup.User, body.Backup.Password, body.Backup.Database, path)
+			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, path)
 		if err == nil {
 
 			if body.Destination.Type == "S3" {

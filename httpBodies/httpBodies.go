@@ -17,7 +17,7 @@ type BackupResponse struct {
 type ErrorResponse struct {
 	Message      string `json:"message"`
 	State        string `json:"state"`
-	ErrorMessage string `json:"error message"`
+	ErrorMessage string `json:"error_message"`
 }
 
 type BackupBody struct {
@@ -41,7 +41,7 @@ type DestinationInformation struct {
 
 type DbInformation struct {
 	Host       string
-	User       string
+	Username   string
 	Password   string
 	Database   string
 	Parameters []map[string]interface{}
@@ -59,13 +59,29 @@ func PrintOutBackupBody(body BackupBody) {
 		"    },\n",
 		"    \"backup\" : {\n",
 		errorlog.Concat([]string{"        \"host\" : \"", body.Backup.Host, "\",\n"}, ""),
-		errorlog.Concat([]string{"        \"user\" : \"", body.Backup.User, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"user\" : \"", body.Backup.Username, "\",\n"}, ""),
 		"        \"password\" : <redacted>\n",
 		errorlog.Concat([]string{"        \"database\" : \"", body.Backup.Database, "\",\n"}, ""),
 		"        \"parameters\" : ",
 		getParametersAsLogStringSlice(body.Backup.Parameters),
 		"    }\n",
 		"}")
+}
+
+func CheckForMissingFieldsInRestoreBody(body RestoreBody) bool {
+	return CheckForMissingFieldDestinationInformation(body.Destination, false) && CheckForMissingFieldsInDbInformation(body.Restore)
+}
+
+func CheckForMissingFieldsInBackupBody(body BackupBody) bool {
+	return CheckForMissingFieldDestinationInformation(body.Destination, true) && CheckForMissingFieldsInDbInformation(body.Backup)
+}
+
+func CheckForMissingFieldDestinationInformation(body DestinationInformation, fileCanBeMissing bool) bool {
+	return body.AuthKey != "" && body.AuthSecret != "" && body.Bucket != "" && (body.File != "" || fileCanBeMissing) && body.Region != "" && body.Type != ""
+}
+
+func CheckForMissingFieldsInDbInformation(body DbInformation) bool {
+	return body.Database != "" && body.Host != "" && body.Password != "" && body.Username != ""
 }
 
 func PrintOutRestoreBody(body RestoreBody) {
@@ -81,7 +97,7 @@ func PrintOutRestoreBody(body RestoreBody) {
 		"    },\n",
 		"    \"backup\" : {\n",
 		errorlog.Concat([]string{"        \"host\" : \"", body.Restore.Host, "\",\n"}, ""),
-		errorlog.Concat([]string{"        \"user\" : \"", body.Restore.User, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"user\" : \"", body.Restore.Username, "\",\n"}, ""),
 		"        \"password\" : <redacted>\n",
 		errorlog.Concat([]string{"        \"database\" : \"", body.Restore.Database, "\",\n"}, ""),
 		"        \"parameters\" : ",

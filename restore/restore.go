@@ -34,9 +34,13 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 	var body httpBodies.RestoreBody
 	err := decoder.Decode(&body)
 
-	if err != nil {
+	missingFields := !httpBodies.CheckForMissingFieldsInRestoreBody(body)
+	if err != nil || missingFields {
+		if err == nil {
+			err = errors.New("body is missing essential fields")
+		}
 		errorlog.LogError("Restore failed during body deserialization due to '", err.Error(), "'")
-		var response = httpBodies.ErrorResponse{"Restore failed.", "Body Deserialization", err.Error()}
+		var response = httpBodies.ErrorResponse{Message: "Restore failed.", State: "Body Deserialization", ErrorMessage: err.Error()}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(400)
 		json.NewEncoder(w).Encode(response)
@@ -65,14 +69,15 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				status = false
 				log.Println("[ERROR] Downloading from S3 failed due to '", err.Error(), "'")
+			} else {
+				status, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
+					body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.File)
 			}
 		} else {
 			status = false
 			err = errors.New("type is not supported")
 		}
 
-		status, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
-			body.Restore.Host, body.Restore.User, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.File)
 		log.Println("> Finishing", state, "stage.")
 	}
 	if status {
