@@ -3,7 +3,6 @@ package restore
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"github.com/evoila/osb-backup-agent/s3"
 	"github.com/evoila/osb-backup-agent/security"
 	"github.com/evoila/osb-backup-agent/shell"
+	"github.com/evoila/osb-backup-agent/timeutil"
 )
 
 type response struct {
@@ -33,11 +33,13 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Decode request body and scan for empty fields
 	decoder := json.NewDecoder(r.Body)
 	var body httpBodies.RestoreBody
 	err := decoder.Decode(&body)
-
 	missingFields := !httpBodies.CheckForMissingFieldsInRestoreBody(body)
+
+	// Handle error or missing fields of request body
 	if err != nil || missingFields {
 		if err == nil {
 			err = errors.New("body is missing essential fields")
@@ -55,16 +57,20 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 	log.Println("Database", body.Restore.Database, "is supposed to get a restore.")
 	httpBodies.PrintOutRestoreBody(body)
 
-	var status = true
+	// Set up variables for filling response bodies later on
 	var state string
 	outputStatus := httpBodies.Status_failed
 	preRestoreLockLog, restoreLog, restoreCleanupLog, postRestoreUnlockLog := "", "", "", ""
-	currentTime := time.Now()
-	executionTime := currentTime.UnixNano()
-	startTime := fmt.Sprintf("%v-%v-%02vT%02v:%02v:%02v+00:00", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second())
 
+	// Get environment parameters from request body
 	var envParameters = httpBodies.GetParametersAsEnvVarStringSlice(body.Restore.Parameters)
 
+	// Set start time
+	currentTime := time.Now()
+	executionTime := currentTime.UnixNano()
+	startTime := timeutil.GetTimestamp(&currentTime)
+
+	var status = true
 	if status {
 		state = NamePreRestoreLock
 		log.Println("> Starting", state, "stage.")
@@ -104,10 +110,12 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 		log.Println("> Finishing", state, "stage.")
 	}
 
+	// Set end time and calculate execution time
 	currentTime = time.Now()
 	executionTime = (currentTime.UnixNano() - executionTime) / 1000 / 1000 //convert from ns to ms
-	endTime := fmt.Sprintf("%v-%v-%02vT%02v:%02v:%02v+00:00", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second())
+	endTime := timeutil.GetTimestamp(&currentTime)
 
+	// Write standard or error response according to status
 	w.Header().Set("Content-Type", "application/json")
 	if status {
 		state = "finished"

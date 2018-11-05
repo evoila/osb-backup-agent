@@ -14,6 +14,7 @@ import (
 	"github.com/evoila/osb-backup-agent/s3"
 	"github.com/evoila/osb-backup-agent/security"
 	"github.com/evoila/osb-backup-agent/shell"
+	"github.com/evoila/osb-backup-agent/timeutil"
 )
 
 // NamePreBackupLock : Name of the script to call for the pre-backup-lock stage
@@ -39,15 +40,13 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Decode request body and scan for empty fields
 	decoder := json.NewDecoder(r.Body)
 	var body httpBodies.BackupBody
 	err := decoder.Decode(&body)
-
-	currentTime := time.Now()
-	executionTime := currentTime.UnixNano()
-	startTime := fmt.Sprintf("%v-%v-%02vT%02v:%02v:%02v+00:00", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second())
-
 	missingFields := !httpBodies.CheckForMissingFieldsInBackupBody(body)
+
+	// Handle error or missing fields of request body
 	if err != nil || missingFields {
 		if err == nil {
 			err = errors.New("body is missing essential fields")
@@ -64,14 +63,22 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 	log.Println("Database", body.Backup.Database, "is supposed to get a new backup.")
 	httpBodies.PrintOutBackupBody(body)
 
-	var status = true
+	// Set up variables for later filled response bodies
 	var state, filename string
 	outputStatus := httpBodies.Status_failed
 	preBackupLockLog, preBackupCheckLog, backupLog, backupCleanupLog, postBackupUnlockLog := "", "", "", "", ""
-	var fileSize int64 = 0
+	var fileSize int64
 
+	// Get environment parameters from request body
 	var envParameters = httpBodies.GetParametersAsEnvVarStringSlice(body.Backup.Parameters)
 
+	// Set start time
+	currentTime := time.Now()
+	executionTime := currentTime.UnixNano()
+	startTime := timeutil.GetTimestamp(&currentTime)
+
+	// Start execution of scripts
+	var status = true
 	if status {
 		state = NamePreBackupLock
 		log.Println("> Starting", state, "stage.")
@@ -118,9 +125,11 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 		log.Println("> Finishing", state, "stage.")
 	}
 
+	// Set end time and calculate execution time
 	currentTime = time.Now()
-	executionTime = (currentTime.UnixNano() - executionTime) / 1000 / 1000 //convert from ns to ms
-	endTime := fmt.Sprintf("%v-%v-%02vT%02v:%02v:%02v+00:00", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second())
+	executionTime = timeutil.GetTimeDifferenceInMilliseconds(executionTime, currentTime.UnixNano())
+	endTime := timeutil.GetTimestamp(&currentTime)
+
 	w.Header().Set("Content-Type", "application/json")
 	if status {
 		state = "finished"
@@ -139,7 +148,6 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 			errorMessage = err.Error()
 		}
 		errorlog.LogError("Backup failed due to '", errorMessage, "'")
-		//var response = httpBodies.ErrorResponse{Message: "backup failed.", State: state, ErrorMessage: errorMessage}
 		var response = httpBodies.BackupErrorResponse{
 			Status: outputStatus, Message: "backup failed", State: state, ErrorMessage: errorMessage,
 			PreBackupLockLog: preBackupLockLog, PreBackupCheckLog: preBackupCheckLog, BackupLog: backupLog,
