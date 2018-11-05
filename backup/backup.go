@@ -138,9 +138,9 @@ func uploadToS3(body httpBodies.BackupBody) (string, error) {
 	}
 	log.Println("Using file at", path)
 
-	s3.UploadFile(fileName, path, body)
+	err := s3.UploadFile(fileName, path, body)
 
-	return fileName, nil
+	return fileName, err
 }
 
 func GetBackupPath(host, database string) string {

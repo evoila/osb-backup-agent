@@ -121,7 +121,7 @@ func downloadFromS3(body httpBodies.RestoreBody) error {
 	}
 	log.Println("Using file at", path)
 
-	s3.DownloadFile(body.Destination.File, path, body)
+	err := s3.DownloadFile(body.Destination.File, path, body)
 
-	return nil
+	return err
 }
