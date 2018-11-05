@@ -68,6 +68,7 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 	var state, filename string
 	outputStatus := httpBodies.Status_failed
 	preBackupLockLog, preBackupCheckLog, backupLog, backupCleanupLog, postBackupUnlockLog := "", "", "", "", ""
+	preBackupLockErrorLog, preBackupCheckErrorLog, backupErrorLog, backupCleanupErrorLog, postBackupUnlockErrorLog := "", "", "", "", ""
 	var fileSize int64
 
 	// Get environment parameters from request body
@@ -83,20 +84,20 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 	if status {
 		state = NamePreBackupLock
 		log.Println("> Starting", state, "stage.")
-		status, preBackupLockLog, err = shell.ExecuteScriptForStage(NamePreBackupLock, envParameters)
+		status, preBackupLockLog, preBackupLockErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupLock, envParameters)
 		log.Println("> Finishing", state, "stage.")
 	}
 	if status {
 		state = NamePreBackupCheck
 		log.Println("> Starting", state, "stage.")
-		status, preBackupCheckLog, err = shell.ExecuteScriptForStage(NamePreBackupCheck, envParameters)
+		status, preBackupCheckLog, preBackupCheckErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupCheck, envParameters)
 		log.Println("> Finishing", state, "stage.")
 	}
 	if status {
 		state = NameBackup
 		log.Println("> Starting", state, "stage.")
 		var path = GetBackupPath(body.Backup.Host, body.Backup.Database)
-		status, backupLog, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
+		status, backupLog, backupErrorLog, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
 			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, path)
 		if err == nil {
 
@@ -116,13 +117,13 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 	if status {
 		state = NameBackupCleanup
 		log.Println("> Starting", state, "stage.")
-		status, backupCleanupLog, err = shell.ExecuteScriptForStage(NameBackupCleanup, envParameters)
+		status, backupCleanupLog, backupCleanupErrorLog, err = shell.ExecuteScriptForStage(NameBackupCleanup, envParameters)
 		log.Println("> Finishing", state, "stage.")
 	}
 	if status {
 		state = NamePostBackupUnlock
 		log.Println("> Starting", state, "stage.")
-		status, postBackupUnlockLog, err = shell.ExecuteScriptForStage(NamePostBackupUnlock, envParameters)
+		status, postBackupUnlockLog, postBackupUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostBackupUnlock, envParameters)
 		log.Println("> Finishing", state, "stage.")
 	}
 
@@ -140,8 +141,12 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 		var response = &httpBodies.BackupResponse{Message: "backup successfully created",
 			Region: body.Destination.Region, Bucket: body.Destination.Bucket, FileName: filename, FileSize: httpBodies.FileSize{Size: fileSize, Unit: "byte"},
 			StartTime: startTime, EndTime: endTime, ExecutionTime: executionTime, Status: outputStatus,
+			// Logs
 			PreBackupLockLog: preBackupLockLog, PreBackupCheckLog: preBackupCheckLog, BackupLog: backupLog,
 			BackupCleanupLog: backupCleanupLog, PostBackupUnlockLog: postBackupUnlockLog,
+			// Error logs
+			PreBackupLockErrorLog: preBackupLockErrorLog, PreBackupCheckErrorLog: preBackupCheckErrorLog, BackupErrorLog: backupErrorLog,
+			BackupCleanupErrorLog: backupCleanupErrorLog, PostBackupUnlockErrorLog: postBackupUnlockErrorLog,
 		}
 		json.NewEncoder(w).Encode(response)
 	} else {
@@ -152,8 +157,12 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 		errorlog.LogError("Backup failed due to '", errorMessage, "'")
 		var response = httpBodies.BackupErrorResponse{
 			Status: outputStatus, Message: "backup failed", State: state, ErrorMessage: errorMessage,
+			// Logs
 			PreBackupLockLog: preBackupLockLog, PreBackupCheckLog: preBackupCheckLog, BackupLog: backupLog,
 			BackupCleanupLog: backupCleanupLog, PostBackupUnlockLog: postBackupUnlockLog,
+			// Error logs
+			PreBackupLockErrorLog: preBackupLockErrorLog, PreBackupCheckErrorLog: preBackupCheckErrorLog, BackupErrorLog: backupErrorLog,
+			BackupCleanupErrorLog: backupCleanupErrorLog, PostBackupUnlockErrorLog: postBackupUnlockErrorLog,
 		}
 		w.WriteHeader(500)
 		json.NewEncoder(w).Encode(response)

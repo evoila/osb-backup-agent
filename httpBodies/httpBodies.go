@@ -11,20 +11,25 @@ const Status_success = "SUCCESS"
 const Status_failed = "ERROR"
 
 type BackupResponse struct {
-	Status              string   `json:"status"`
-	Message             string   `json:"message"`
-	Region              string   `json:"region"`
-	Bucket              string   `json:"bucket"`
-	FileName            string   `json:"filename"`
-	FileSize            FileSize `json:"filesize"`
-	StartTime           string   `json:"start_time"`
-	EndTime             string   `json:"end_time"`
-	ExecutionTime       int64    `json:"execution_time_ms"`
-	PreBackupLockLog    string   `json:"pre_backup_lock_log"`
-	PreBackupCheckLog   string   `json:"pre_backup_check_log"`
-	BackupLog           string   `json:"backup_log"`
-	BackupCleanupLog    string   `json:"backup_cleanup_log"`
-	PostBackupUnlockLog string   `json:"post_backup_unlock_log"`
+	Status                   string   `json:"status"`
+	Message                  string   `json:"message"`
+	Region                   string   `json:"region"`
+	Bucket                   string   `json:"bucket"`
+	FileName                 string   `json:"filename"`
+	FileSize                 FileSize `json:"filesize"`
+	StartTime                string   `json:"start_time"`
+	EndTime                  string   `json:"end_time"`
+	ExecutionTime            int64    `json:"execution_time_ms"`
+	PreBackupLockLog         string   `json:"pre_backup_lock_log"`
+	PreBackupLockErrorLog    string   `json:"pre_backup_lock_errorlog"`
+	PreBackupCheckLog        string   `json:"pre_backup_check_log"`
+	PreBackupCheckErrorLog   string   `json:"pre_backup_check_errorlog"`
+	BackupLog                string   `json:"backup_log"`
+	BackupErrorLog           string   `json:"backup_errorlog"`
+	BackupCleanupLog         string   `json:"backup_cleanup_log"`
+	BackupCleanupErrorLog    string   `json:"backup_cleanup_errorlog"`
+	PostBackupUnlockLog      string   `json:"post_backup_unlock_log"`
+	PostBackupUnlockErrorLog string   `json:"post_backup_unlock_errorlog"`
 }
 
 type FileSize struct {
@@ -33,44 +38,57 @@ type FileSize struct {
 }
 
 type BackupErrorResponse struct {
-	Status              string `json:"status"`
-	Message             string `json:"message"`
-	State               string `json:"state"`
-	ErrorMessage        string `json:"error_message"`
-	StartTime           string `json:"start_time"`
-	EndTime             string `json:"end_time"`
-	ExecutionTime       int64  `json:"execution_time_ms"`
-	PreBackupLockLog    string `json:"pre_backup_lock_log"`
-	PreBackupCheckLog   string `json:"pre_backup_check_log"`
-	BackupLog           string `json:"backup_log"`
-	BackupCleanupLog    string `json:"backup_cleanup_log"`
-	PostBackupUnlockLog string `json:"post_backup_unlock_log"`
+	Status                   string `json:"status"`
+	Message                  string `json:"message"`
+	State                    string `json:"state"`
+	ErrorMessage             string `json:"error_message"`
+	StartTime                string `json:"start_time"`
+	EndTime                  string `json:"end_time"`
+	ExecutionTime            int64  `json:"execution_time_ms"`
+	PreBackupLockLog         string `json:"pre_backup_lock_log"`
+	PreBackupLockErrorLog    string `json:"pre_backup_lock_errorlog"`
+	PreBackupCheckLog        string `json:"pre_backup_check_log"`
+	PreBackupCheckErrorLog   string `json:"pre_backup_check_errorlog"`
+	BackupLog                string `json:"backup_log"`
+	BackupErrorLog           string `json:"backup_errorlog"`
+	BackupCleanupLog         string `json:"backup_cleanup_log"`
+	BackupCleanupErrorLog    string `json:"backup_cleanup_errorlog"`
+	PostBackupUnlockLog      string `json:"post_backup_unlock_log"`
+	PostBackupUnlockErrorLog string `json:"post_backup_unlock_errorlog"`
 }
 
 type RestoreResponse struct {
-	Status               string `json:"status"`
-	Message              string `json:"message"`
-	StartTime            string `json:"start_time"`
-	EndTime              string `json:"end_time"`
-	ExecutionTime        int64  `json:"execution_time_ms"`
-	PreRestoreLockLog    string `json:"pre_restore_lock_log"`
-	RestoreLog           string `json:"restore_log"`
-	RestoreCleanupLog    string `json:"restore_cleanup_log"`
-	PostRestoreUnlockLog string `json:"post_restore_unlock_log"`
+	Status                    string `json:"status"`
+	Message                   string `json:"message"`
+	StartTime                 string `json:"start_time"`
+	EndTime                   string `json:"end_time"`
+	ExecutionTime             int64  `json:"execution_time_ms"`
+	PreRestoreLockLog         string `json:"pre_restore_lock_log"`
+	PreRestoreLockErrorLog    string `json:"pre_restore_lock_errorlog"`
+	RestoreLog                string `json:"restore_log"`
+	RestoreErrorLog           string `json:"restore_errorlog"`
+	RestoreCleanupLog         string `json:"restore_cleanup_log"`
+	RestoreCleanupErrorLog    string `json:"restore_cleanup_errorlog"`
+	PostRestoreUnlockLog      string `json:"post_restore_unlock_log"`
+	PostRestoreUnlockErrorLog string `json:"post_restore_unlock_errorlog"`
 }
 
 type RestoreErrorResponse struct {
-	Status               string `json:"status"`
-	Message              string `json:"message"`
-	State                string `json:"state"`
-	ErrorMessage         string `json:"error_message"`
-	StartTime            string `json:"start_time"`
-	EndTime              string `json:"end_time"`
-	ExecutionTime        int64  `json:"execution_time_ms"`
-	PreRestoreLockLog    string `json:"pre_restore_lock_log"`
-	RestoreLog           string `json:"restore_log"`
-	RestoreCleanupLog    string `json:"restore_cleanup_log"`
-	PostRestoreUnlockLog string `json:"post_restore_unlock_log"`
+	Status                    string `json:"status"`
+	Message                   string `json:"message"`
+	State                     string `json:"state"`
+	ErrorMessage              string `json:"error_message"`
+	StartTime                 string `json:"start_time"`
+	EndTime                   string `json:"end_time"`
+	ExecutionTime             int64  `json:"execution_time_ms"`
+	PreRestoreLockLog         string `json:"pre_restore_lock_log"`
+	PreRestoreLockErrorLog    string `json:"pre_restore_lock_errorlog"`
+	RestoreLog                string `json:"restore_log"`
+	RestoreErrorLog           string `json:"restore_errorlog"`
+	RestoreCleanupLog         string `json:"restore_cleanup_log"`
+	RestoreCleanupErrorLog    string `json:"restore_cleanup_errorlog"`
+	PostRestoreUnlockLog      string `json:"post_restore_unlock_log"`
+	PostRestoreUnlockErrorLog string `json:"post_restore_unlock_errorlog"`
 }
 
 type ErrorResponse struct {

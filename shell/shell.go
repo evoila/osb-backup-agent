@@ -15,11 +15,11 @@ import (
 
 var Directory = configuration.GetScriptsPath()
 
-func ExecuteScriptForStage(stageName string, jsonParams []string, params ...string) (found bool, logs string, err error) {
+func ExecuteScriptForStage(stageName string, jsonParams []string, params ...string) (found bool, logs string, errlogs string, err error) {
 	var fileName string
 	found, fileName = CheckForBothExistingFiles(Directory, stageName)
 	if !found {
-		return found, "", errors.New(errorlog.Concat([]string{"No script found for the ", stageName, " stage."}, ""))
+		return found, "", "", errors.New(errorlog.Concat([]string{"No script found for the ", stageName, " stage."}, ""))
 	}
 
 	out, errOut, err := ExecShellScript(GetPathToFile(Directory, fileName), jsonParams, params)
@@ -32,7 +32,8 @@ func ExecuteScriptForStage(stageName string, jsonParams []string, params ...stri
 	}
 
 	log.Println("Script's Stdout:", out.String())
-	return true, out.String(), nil
+	log.Println("Script's Sterr:", errOut.String())
+	return true, out.String(), errOut.String(), nil
 }
 
 func ExecShellScript(path string, jsonParams []string, params []string) (bytes.Buffer, bytes.Buffer, error) {

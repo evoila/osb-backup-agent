@@ -61,6 +61,7 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 	var state string
 	outputStatus := httpBodies.Status_failed
 	preRestoreLockLog, restoreLog, restoreCleanupLog, postRestoreUnlockLog := "", "", "", ""
+	preRestoreLockErrorLog, restoreErrorLog, restoreCleanupErrorLog, postRestoreUnlockErrorLog := "", "", "", ""
 
 	// Get environment parameters from request body
 	var envParameters = httpBodies.GetParametersAsEnvVarStringSlice(body.Restore.Parameters)
@@ -74,7 +75,7 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 	if status {
 		state = NamePreRestoreLock
 		log.Println("> Starting", state, "stage.")
-		status, preRestoreLockLog, err = shell.ExecuteScriptForStage(NamePreRestoreLock, envParameters)
+		status, preRestoreLockLog, preRestoreLockErrorLog, err = shell.ExecuteScriptForStage(NamePreRestoreLock, envParameters)
 		log.Println("> Finishing", state, "stage.")
 	}
 	if status {
@@ -87,7 +88,7 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 				status = false
 				log.Println("[ERROR] Downloading from S3 failed due to '", err.Error(), "'")
 			} else {
-				status, restoreLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
+				status, restoreLog, restoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
 					body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.Filename)
 			}
 		} else {
@@ -100,13 +101,13 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 	if status {
 		state = NameRestoreCleanup
 		log.Println("> Starting", state, "stage.")
-		status, restoreCleanupLog, err = shell.ExecuteScriptForStage(NameRestoreCleanup, envParameters)
+		status, restoreCleanupLog, restoreCleanupErrorLog, err = shell.ExecuteScriptForStage(NameRestoreCleanup, envParameters)
 		log.Println("> Finishing", state, "stage.")
 	}
 	if status {
 		state = NamePostRestoreUnlock
 		log.Println("> Starting", state, "stage.")
-		status, postRestoreUnlockLog, err = shell.ExecuteScriptForStage(NamePostRestoreUnlock, envParameters)
+		status, postRestoreUnlockLog, postRestoreUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostRestoreUnlock, envParameters)
 		log.Println("> Finishing", state, "stage.")
 	}
 
@@ -123,8 +124,10 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 		log.Println("Restore successfully carried out")
 		var response = &httpBodies.RestoreResponse{Status: outputStatus, Message: "restore successfully carried out",
 			StartTime: startTime, EndTime: endTime, ExecutionTime: executionTime,
-			PreRestoreLockLog: preRestoreLockLog, RestoreLog: restoreLog, RestoreCleanupLog: restoreCleanupLog,
-			PostRestoreUnlockLog: postRestoreUnlockLog,
+			// Logs
+			PreRestoreLockLog: preRestoreLockLog, RestoreLog: restoreLog, RestoreCleanupLog: restoreCleanupLog, PostRestoreUnlockLog: postRestoreUnlockLog,
+			// Error logs
+			PreRestoreLockErrorLog: preRestoreLockErrorLog, RestoreErrorLog: restoreErrorLog, RestoreCleanupErrorLog: restoreCleanupErrorLog, PostRestoreUnlockErrorLog: postRestoreUnlockErrorLog,
 		}
 		json.NewEncoder(w).Encode(response)
 	} else {
@@ -135,7 +138,10 @@ func RestoreRequest(w http.ResponseWriter, r *http.Request) {
 		errorlog.LogError("Restore failed due to '", errorMessage, "'")
 		var response = httpBodies.RestoreErrorResponse{
 			Status: outputStatus, Message: "restore failed", State: state, ErrorMessage: errorMessage,
+			// Logs
 			PreRestoreLockLog: preRestoreLockLog, RestoreLog: restoreLog, RestoreCleanupLog: restoreCleanupLog, PostRestoreUnlockLog: postRestoreUnlockLog,
+			// Error logs
+			PreRestoreLockErrorLog: preRestoreLockErrorLog, RestoreErrorLog: restoreErrorLog, RestoreCleanupErrorLog: restoreCleanupErrorLog, PostRestoreUnlockErrorLog: postRestoreUnlockErrorLog,
 		}
 		w.WriteHeader(500)
 		json.NewEncoder(w).Encode(response)
