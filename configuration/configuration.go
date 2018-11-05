@@ -20,12 +20,13 @@ func GetScriptsPath() string {
 }
 
 func GetPort() int {
-	output := getStringEnvVariable("client_port")
-	if parseInt(output) < 0 {
-		log.Println("[ERROR]", "Could not parse '", output, "' or the value is smaller than 0")
-		return -1
+	stringedValue := getStringEnvVariableWithDefault("client_port", "8000")
+	value := parseInt(stringedValue)
+	if value < 0 {
+		log.Println("[ERROR]", "Could not parse '", stringedValue, "' or the value is smaller than 0 -> setting to default '8000'")
+		value = 8000
 	}
-	return parseInt(output)
+	return value
 }
 
 func GetBackupDirectory() string {
