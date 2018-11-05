@@ -24,12 +24,14 @@ func PrintOutConfig() {
 	var backupDirectory = configuration.GetBackupDirectory()
 	var restoreDirectory = configuration.GetRestoreDirectory()
 	var scriptsPath = configuration.GetScriptsPath()
+	var allowedToDeleteFiles = configuration.IsAllowedToDeleteFiles()
 	log.Println("Using following configuration: ",
 		"\nclient_username :", username,
 		"\nclient_password :", pw,
 		"\nclient_port :", port,
 		"\ndirectory_backup :", backupDirectory,
 		"\ndirectory_restore :", restoreDirectory,
-		"\nscripts_path :", scriptsPath)
+		"\nscripts_path :", scriptsPath,
+		"\nallowed_to_delete_files :", allowedToDeleteFiles)
 
 }

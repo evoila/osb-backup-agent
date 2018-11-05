@@ -35,6 +35,16 @@ func GetRestoreDirectory() string {
 	return getStringEnvVariable("directory_restore")
 }
 
+func IsAllowedToDeleteFiles() bool {
+	stringedValue := getStringEnvVariableWithDefault("allowed_to_delete_files", "false")
+	value, err := parseBool(stringedValue)
+	if err != nil {
+		log.Println("[ERROR]", "Could not parse '", stringedValue, "' -> setting to default 'false'")
+		value = false
+	}
+	return value
+}
+
 func getStringEnvVariable(variable string) string {
 	var output = os.Getenv(variable)
 	if output == "" {
@@ -43,10 +53,11 @@ func getStringEnvVariable(variable string) string {
 	return output
 }
 
-func getStringEnvVariableWithDefault(variable string, default_variable string) string {
+func getStringEnvVariableWithDefault(variable string, defaultVariable string) string {
 	output := getStringEnvVariable(variable)
 	if output == "" {
-		output = default_variable
+		log.Println("[ERROR] -> using default:", defaultVariable)
+		output = defaultVariable
 	}
 	return output
 }
@@ -57,4 +68,12 @@ func parseInt(number string) int {
 		return -1
 	}
 	return i
+}
+
+func parseBool(boolean string) (bool, error) {
+	b, err := strconv.ParseBool(boolean)
+	if err != nil {
+		return false, errors.New("")
+	}
+	return b, nil
 }

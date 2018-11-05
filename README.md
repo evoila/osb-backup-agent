@@ -20,6 +20,7 @@ The agent uses environment variables to configurate its parameters.
 | directory_backup | /tmp/backups | The directory in which the agent looks for files to upload to the cloud storage. |
 | directory_restore | /tmp/restores | The directory in which the agent will put the downloaded restore file from the cloud storage. |
 | scrips_path | /tmp/scrips | The directory in which the agent will look for the backup scrips. Defaults to `/var/vcap/jobs/backup-agent/backup`  |
+| allowed_to_delete_files | true | Flag for permission to delete already existing files. Defaults to `false` | 
 
 
 ## Endpoints ##
@@ -35,7 +36,7 @@ The agent supports three http endpoints for status, backup and restore. The endp
 ```json
 {
     "destination" : {
-        "type": "s3",
+        "type": "S3",
         "bucket": "bucketName",
         "region": "regionName",
         "authKey": "key",
@@ -59,7 +60,7 @@ Please note that objects in the parameters object can not have nested objects, a
 ```json
 {
     "destination" : {
-        "type": "s3",
+        "type": "S3",
         "bucket": "bucketName",
         "region": "regionName",
         "authKey": "key",
