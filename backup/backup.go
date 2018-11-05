@@ -60,10 +60,11 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response)
 		return
 	}
+
 	log.Println("Database", body.Backup.Database, "is supposed to get a new backup.")
 	httpBodies.PrintOutBackupBody(body)
 
-	// Set up variables for later filled response bodies
+	// Set up variables for filling response bodies later on
 	var state, filename string
 	outputStatus := httpBodies.Status_failed
 	preBackupLockLog, preBackupCheckLog, backupLog, backupCleanupLog, postBackupUnlockLog := "", "", "", "", ""
@@ -130,6 +131,7 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 	executionTime = timeutil.GetTimeDifferenceInMilliseconds(executionTime, currentTime.UnixNano())
 	endTime := timeutil.GetTimestamp(&currentTime)
 
+	// Write standard or error response according to status
 	w.Header().Set("Content-Type", "application/json")
 	if status {
 		state = "finished"
