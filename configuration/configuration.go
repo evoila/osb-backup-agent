@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"errors"
 	"log"
 	"os"
 	"strconv"
