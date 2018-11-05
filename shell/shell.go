@@ -15,10 +15,11 @@ import (
 
 var Directory = configuration.GetScriptsPath()
 
-func ExecuteScriptForStage(stageName string, jsonParams []string, params ...string) (bool, error) {
-	var found, fileName = CheckForBothExistingFiles(Directory, stageName)
+func ExecuteScriptForStage(stageName string, jsonParams []string, params ...string) (found bool, logs string, err error) {
+	var fileName string
+	found, fileName = CheckForBothExistingFiles(Directory, stageName)
 	if !found {
-		return false, errors.New(errorlog.Concat([]string{"No script found for the ", stageName, " stage."}, ""))
+		return found, "", errors.New(errorlog.Concat([]string{"No script found for the ", stageName, " stage."}, ""))
 	}
 
 	out, errOut, err := ExecShellScript(GetPathToFile(Directory, fileName), jsonParams, params)
@@ -31,7 +32,7 @@ func ExecuteScriptForStage(stageName string, jsonParams []string, params ...stri
 	}
 
 	log.Println("Script's Stdout:", out.String())
-	return true, nil
+	return true, out.String(), nil
 }
 
 func ExecShellScript(path string, jsonParams []string, params []string) (bytes.Buffer, bytes.Buffer, error) {
@@ -95,6 +96,14 @@ func CheckForBothExistingFiles(directory, fileName string) (bool, string) {
 
 func GetPathToFile(directory, fileName string) string {
 	return errorlog.Concat([]string{directory, fileName}, "/")
+}
+
+func GetFileSize(path string) (int64, error) {
+	file, err := os.Stat(path)
+	if err != nil {
+		return 0, errorlog.LogError("Accessing file stats of ", path, " failed due to '", err.Error(), "'")
+	}
+	return file.Size(), nil
 }
 
 func addEnvVars(params []string, cmd *exec.Cmd) {

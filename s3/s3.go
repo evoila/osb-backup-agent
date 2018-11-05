@@ -43,11 +43,7 @@ func UploadFile(filename, path string, body httpBodies.BackupBody) error {
 
 	log.Println("Setting up S3 uploader")
 	var uploader = s3manager.NewUploader(sess)
-	var client = s3.New(sess)
-
-	// -- Listing all objects of the given bucket --
-	// Surely not needed later
-	listObjectsOfBucket(body.Destination.Bucket, client)
+	//var client = s3.New(sess)
 
 	// -- Uploading the backup file to the given bucket --
 	log.Println("Uploading", filename, "to", body.Destination.Bucket)
@@ -62,8 +58,6 @@ func UploadFile(filename, path string, body httpBodies.BackupBody) error {
 		return errorlog.LogError("Failed to upload to S3 due to '", err.Error(), "'")
 	}
 	log.Printf("Successfully uploaded %q to %q\n", filename, body.Destination.Bucket)
-
-	listObjectsOfBucket(body.Destination.Bucket, client)
 
 	return nil
 }

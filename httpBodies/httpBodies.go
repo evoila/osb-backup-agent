@@ -7,11 +7,70 @@ import (
 	"github.com/evoila/osb-backup-agent/errorlog"
 )
 
+const Status_success = "SUCCESS"
+const Status_failed = "ERROR"
+
 type BackupResponse struct {
-	Message  string `json:"message"`
-	FileName string `json:"filename"`
-	Region   string `json:"region"`
-	Bucket   string `json:"bucket"`
+	Status              string   `json:"status"`
+	Message             string   `json:"message"`
+	Region              string   `json:"region"`
+	Bucket              string   `json:"bucket"`
+	FileName            string   `json:"filename"`
+	FileSize            FileSize `json:"filesize"`
+	StartTime           string   `json:"start_time"`
+	EndTime             string   `json:"end_time"`
+	ExecutionTime       int64    `json:"execution_time_ms"`
+	PreBackupLockLog    string   `json:"pre_backup_lock_log"`
+	PreBackupCheckLog   string   `json:"pre_backup_check_log"`
+	BackupLog           string   `json:"backup_log"`
+	BackupCleanupLog    string   `json:"backup_cleanup_log"`
+	PostBackupUnlockLog string   `json:"post_backup_unlock_log"`
+}
+
+type FileSize struct {
+	Size int64  `json:"size"`
+	Unit string `json:"unit"`
+}
+
+type BackupErrorResponse struct {
+	Status              string `json:"status"`
+	Message             string `json:"message"`
+	State               string `json:"state"`
+	ErrorMessage        string `json:"error_message"`
+	StartTime           string `json:"start_time"`
+	EndTime             string `json:"end_time"`
+	ExecutionTime       int64  `json:"execution_time_ms"`
+	PreBackupLockLog    string `json:"pre_backup_lock_log"`
+	PreBackupCheckLog   string `json:"pre_backup_check_log"`
+	BackupLog           string `json:"backup_log"`
+	BackupCleanupLog    string `json:"backup_cleanup_log"`
+	PostBackupUnlockLog string `json:"post_backup_unlock_log"`
+}
+
+type RestoreResponse struct {
+	Status               string `json:"status"`
+	Message              string `json:"message"`
+	StartTime            string `json:"start_time"`
+	EndTime              string `json:"end_time"`
+	ExecutionTime        int64  `json:"execution_time_ms"`
+	PreRestoreLockLog    string `json:"pre_restore_lock_log"`
+	RestoreLog           string `json:"restore_log"`
+	RestoreCleanupLog    string `json:"restore_cleanup_log"`
+	PostRestoreUnlockLog string `json:"post_restore_unlock_log"`
+}
+
+type RestoreErrorResponse struct {
+	Status               string `json:"status"`
+	Message              string `json:"message"`
+	State                string `json:"state"`
+	ErrorMessage         string `json:"error_message"`
+	StartTime            string `json:"start_time"`
+	EndTime              string `json:"end_time"`
+	ExecutionTime        int64  `json:"execution_time_ms"`
+	PreRestoreLockLog    string `json:"pre_restore_lock_log"`
+	RestoreLog           string `json:"restore_log"`
+	RestoreCleanupLog    string `json:"restore_cleanup_log"`
+	PostRestoreUnlockLog string `json:"post_restore_unlock_log"`
 }
 
 type ErrorResponse struct {
@@ -36,7 +95,7 @@ type DestinationInformation struct {
 	Region     string
 	AuthKey    string
 	AuthSecret string
-	File       string
+	Filename   string
 }
 
 type DbInformation struct {
@@ -77,7 +136,7 @@ func CheckForMissingFieldsInBackupBody(body BackupBody) bool {
 }
 
 func CheckForMissingFieldDestinationInformation(body DestinationInformation, fileCanBeMissing bool) bool {
-	return body.AuthKey != "" && body.AuthSecret != "" && body.Bucket != "" && (body.File != "" || fileCanBeMissing) && body.Region != "" && body.Type != ""
+	return body.AuthKey != "" && body.AuthSecret != "" && body.Bucket != "" && (body.Filename != "" || fileCanBeMissing) && body.Region != "" && body.Type != ""
 }
 
 func CheckForMissingFieldsInDbInformation(body DbInformation) bool {
@@ -93,7 +152,7 @@ func PrintOutRestoreBody(body RestoreBody) {
 		errorlog.Concat([]string{"        \"region\" : \"", body.Destination.Region, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authKey\" : \"", body.Destination.AuthKey, "\",\n"}, ""),
 		"        \"authSecret\" : <redacted>\n",
-		errorlog.Concat([]string{"        \"file\" : \"", body.Destination.File, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"filename\" : \"", body.Destination.Filename, "\",\n"}, ""),
 		"    },\n",
 		"    \"backup\" : {\n",
 		errorlog.Concat([]string{"        \"host\" : \"", body.Restore.Host, "\",\n"}, ""),
