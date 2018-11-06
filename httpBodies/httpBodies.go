@@ -14,7 +14,7 @@ const Status_failed = "ERROR"
 type BackupResponse struct {
 	Status                   string   `json:"status"`
 	Message                  string   `json:"message"`
-	State                    string   `json:"state,omitempty"`
+	State                    string   `json:"state"`
 	ErrorMessage             string   `json:"error_message,omitempty"`
 	Region                   string   `json:"region"`
 	Bucket                   string   `json:"bucket"`
@@ -43,7 +43,7 @@ type FileSize struct {
 type RestoreResponse struct {
 	Status                    string `json:"status"`
 	Message                   string `json:"message"`
-	State                     string `json:"state,omitempty"`
+	State                     string `json:"state"`
 	ErrorMessage              string `json:"error_message,omitempty"`
 	StartTime                 string `json:"start_time"`
 	EndTime                   string `json:"end_time"`

@@ -17,6 +17,7 @@ import (
 	"github.com/evoila/osb-backup-agent/shell"
 	"github.com/evoila/osb-backup-agent/timeutil"
 	"github.com/evoila/osb-backup-agent/utils"
+	"github.com/gorilla/mux"
 )
 
 // NamePreBackupLock : Name of the script to call for the pre-backup-lock stage
@@ -36,6 +37,7 @@ const NamePostBackupUnlock = "post-backup-unlock"
 
 func RemoveJob(w http.ResponseWriter, r *http.Request) {
 	log.Println("-- Backup job deletion request received. --")
+
 	if !security.BasicAuth(w, r) {
 		return
 	}
@@ -54,6 +56,33 @@ func RemoveJob(w http.ResponseWriter, r *http.Request) {
 	log.Println("-- Backup job deletion request completed. --")
 }
 
+func HandlePolling(w http.ResponseWriter, r *http.Request) {
+	log.Println("-- Backup status request received. --")
+
+	if !security.BasicAuth(w, r) {
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	UUID, exists := vars["UUID"]
+	if !exists {
+		w.WriteHeader(400)
+		return
+	}
+
+	job, existingJob := jobs.GetBackupJob(UUID)
+	if !existingJob {
+		w.WriteHeader(404)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(job)
+	log.Println("-- Backup status request completed. --")
+}
+
 func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 	log.Println("-- Async Backup request received. --")
 
@@ -62,7 +91,12 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, err := utils.UnmarshallIntoBackupBody(w, r)
-	if err != nil || utils.IsUUIDEmptyInBackupBodyWithResponse(w, r, body) {
+	if err != nil {
+		return
+	}
+
+	if utils.IsUUIDEmptyInBackupBodyWithResponse(w, r, body) {
+
 		return
 	}
 
@@ -70,7 +104,7 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 	if exists {
 		log.Println("Job does exist -> showing current result.")
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(200)
+		w.WriteHeader(409)
 		json.NewEncoder(w).Encode(job)
 	} else {
 		// No job exists yet -> create new one
@@ -80,9 +114,10 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 		if missingFields {
 			err = errors.New("body is missing essential fields")
 			errorlog.LogError("Backup failed during body deserialization due to '", err.Error(), "'")
-			var response = httpBodies.BackupResponse{Status: httpBodies.Status_failed, Message: "Backup failed.", State: "Body Deserialization", ErrorMessage: err.Error(),
-				StartTime: "", EndTime: "", ExecutionTime: 0,
-			}
+			var response = httpBodies.BackupResponse{Status: httpBodies.Status_failed, Message: "Backup failed.", State: "Body Deserialization", ErrorMessage: err.Error()}
+			jobs.AddNewBackupJob(body.UUID)
+			jobs.UpdateBackupJob(body.UUID, &response)
+
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(400)
 			json.NewEncoder(w).Encode(response)

@@ -17,6 +17,7 @@ import (
 	"github.com/evoila/osb-backup-agent/shell"
 	"github.com/evoila/osb-backup-agent/timeutil"
 	"github.com/evoila/osb-backup-agent/utils"
+	"github.com/gorilla/mux"
 )
 
 const NamePreRestoreLock = "pre-restore-lock"
@@ -44,6 +45,33 @@ func RemoveJob(w http.ResponseWriter, r *http.Request) {
 	log.Println("Restore job deletion request completed.")
 }
 
+func HandlePolling(w http.ResponseWriter, r *http.Request) {
+	log.Println("-- Restore status request received. --")
+
+	if !security.BasicAuth(w, r) {
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	UUID, exists := vars["UUID"]
+	if !exists {
+		w.WriteHeader(400)
+		return
+	}
+
+	job, existingJob := jobs.GetRestoreJob(UUID)
+	if !existingJob {
+		w.WriteHeader(404)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(job)
+	log.Println("-- Restore status request completed. --")
+}
+
 func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 	log.Println("-- Async Restore request received. --")
 
@@ -60,7 +88,7 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 	if exists {
 		log.Println("Job does exist -> showing current result.")
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(200)
+		w.WriteHeader(409)
 		json.NewEncoder(w).Encode(job)
 	} else {
 		// No job exists yet -> create new one
@@ -70,9 +98,11 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 		if missingFields {
 			err = errors.New("body is missing essential fields")
 			errorlog.LogError("Restore failed during body deserialization due to '", err.Error(), "'")
-			var response = httpBodies.RestoreResponse{Status: httpBodies.Status_failed, Message: "Restore failed.", State: "Body Deserialization", ErrorMessage: err.Error(),
-				StartTime: "", EndTime: "", ExecutionTime: 0,
-			}
+			var response = httpBodies.RestoreResponse{Status: httpBodies.Status_failed, Message: "Restore failed.", State: "Body Deserialization", ErrorMessage: err.Error()}
+
+			jobs.AddNewRestoreJob(body.UUID)
+			jobs.UpdateRestoreJob(body.UUID, &response)
+
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(400)
 			json.NewEncoder(w).Encode(response)
