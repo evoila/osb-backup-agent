@@ -198,9 +198,9 @@ Please not that the ``error_message`` field will not show up in the json, if it 
 
 ```json
 {
-    "status": "SUCCESS",
+    "status": "SUCCEEDED / FAILED / RUNNING",
     "message": "backup successfully carried out",
-    "state": "finished",
+    "state": "finished / name of the current phase",
     "error_message": "contains message dedicated to the occuring error, will not show up if empty",
     "region": "S3 region",
     "bucket": "S3 bucket",
@@ -230,9 +230,9 @@ Please not that the ``error_message`` field will not show up in the json, if it 
 
 ```json
 {
-    "status": "SUCCESS",
+    "status": "SUCCEEDED / FAILED / RUNNING",
     "message": "restore successfully carried out",
-    "state": "finished",
+    "state": "finished / name of the current phase",
     "error_message": "contains message dedicated to the occuring error, will not show up if empty",
     "start_time": "YYYY-MM-DDTHH:MM:SS+00:00",
     "end_time": "YYYY-MM-DDTHH:MM:SS+00:00",
