@@ -35,6 +35,7 @@ The agent supports three http endpoints for status, backup and restore. The endp
 #### Backup body ####
 ```json
 {
+    "UUID" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
     "destination" : {
         "type": "S3",
         "bucket": "bucketName",
@@ -59,13 +60,14 @@ Please note that objects in the parameters object can not have nested objects, a
 #### Restore body ####
 ```json
 {
+    "UUID" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
     "destination" : {
         "type": "S3",
         "bucket": "bucketName",
         "region": "regionName",
         "authKey": "key",
         "authSecret": "secret",
-        "file": "filename"
+        "filename": "filename"
     },
     "restore" : {
         "host": "host",
