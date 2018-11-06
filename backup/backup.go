@@ -35,7 +35,7 @@ const NameBackupCleanup = "backup-cleanup"
 const NamePostBackupUnlock = "post-backup-unlock"
 
 func RemoveJob(w http.ResponseWriter, r *http.Request) {
-	log.Println("Backup job deletion request received.")
+	log.Println("-- Backup job deletion request received. --")
 	if !security.BasicAuth(w, r) {
 		return
 	}
@@ -51,11 +51,11 @@ func RemoveJob(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(410)
 	}
 
-	log.Println("Backup job deletion request completed.")
+	log.Println("-- Backup job deletion request completed. --")
 }
 
 func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
-	log.Println("Async Backup request received.")
+	log.Println("-- Async Backup request received. --")
 
 	if !security.BasicAuth(w, r) {
 		return
@@ -103,26 +103,27 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 
 		// Starting new go routine to handle the backup request
 		log.Println("Starting new go routine to handle backup request for", body.UUID)
-		go BackupRequest(body, job)
+		go Backup(body, job)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(201)
 	}
-	log.Println("Backup request completed.")
+	log.Println("-- Backup request completed. --")
 }
 
-func BackupRequest(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBodies.BackupResponse {
+func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBodies.BackupResponse {
 
 	log.Println("Database", body.Backup.Database, "is supposed to get a new backup.")
 	httpBodies.PrintOutBackupBody(body)
 
 	response, _ := jobs.GetBackupJob(body.UUID)
+	response.Message = "backup is running"
+	response.Status = httpBodies.Status_running
+	response.Bucket = body.Destination.Bucket
+	response.Region = body.Destination.Region
+	jobs.UpdateBackupJob(body.UUID, response)
 
 	// Set up variables for filling response bodies later on
-	var state, filename string
-	outputStatus := httpBodies.Status_failed
-	preBackupLockLog, preBackupCheckLog, backupLog, backupCleanupLog, postBackupUnlockLog := "", "", "", "", ""
-	preBackupLockErrorLog, preBackupCheckErrorLog, backupErrorLog, backupCleanupErrorLog, postBackupUnlockErrorLog := "", "", "", "", ""
 	var fileSize int64
 	var err error
 
@@ -134,52 +135,72 @@ func BackupRequest(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *
 	executionTime := currentTime.UnixNano()
 	startTime := timeutil.GetTimestamp(&currentTime)
 
+	response.StartTime = startTime
+	jobs.UpdateBackupJob(body.UUID, response)
+
 	// Start execution of scripts
 	var status = true
 	if status {
-		state = NamePreBackupLock
-		log.Println("> Starting", state, "stage.")
-		status, preBackupLockLog, preBackupLockErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupLock, envParameters)
-		log.Println("> Finishing", state, "stage.")
+		response.State = NamePreBackupLock
+		jobs.UpdateBackupJob(body.UUID, response)
+
+		log.Println("> Starting", response.State, "stage.")
+		status, response.PreBackupLockLog, response.PreBackupLockErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupLock, envParameters)
+		jobs.UpdateBackupJob(body.UUID, response)
+		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
-		state = NamePreBackupCheck
-		log.Println("> Starting", state, "stage.")
-		status, preBackupCheckLog, preBackupCheckErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupCheck, envParameters)
-		log.Println("> Finishing", state, "stage.")
+		response.State = NamePreBackupCheck
+		jobs.UpdateBackupJob(body.UUID, response)
+
+		log.Println("> Starting", response.State, "stage.")
+		status, response.PreBackupCheckLog, response.PreBackupCheckErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupCheck, envParameters)
+		jobs.UpdateBackupJob(body.UUID, response)
+		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
-		state = NameBackup
-		log.Println("> Starting", state, "stage.")
+		response.State = NameBackup
+		jobs.UpdateBackupJob(body.UUID, response)
+
+		log.Println("> Starting", response.State, "stage.")
 		var path = GetBackupPath(body.Backup.Host, body.Backup.Database)
-		status, backupLog, backupErrorLog, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
+		status, response.BackupLog, response.BackupErrorLog, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
 			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, path)
+		jobs.UpdateBackupJob(body.UUID, response)
 		if err == nil {
 
 			if body.Destination.Type == "S3" {
-				filename, fileSize, err = uploadToS3(body)
+				response.FileName, fileSize, err = uploadToS3(body)
 				if err != nil {
 					status = false
 					log.Println("[ERROR] Uploading to S3 failed due to '", err.Error(), "'")
 				}
+				response.FileSize = httpBodies.FileSize{Size: fileSize, Unit: "byte"}
+				jobs.UpdateBackupJob(body.UUID, response)
 			} else {
 				status = false
 				err = errors.New("type is not supported")
 			}
 		}
-		log.Println("> Finishing", state, "stage.")
+		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
-		state = NameBackupCleanup
-		log.Println("> Starting", state, "stage.")
-		status, backupCleanupLog, backupCleanupErrorLog, err = shell.ExecuteScriptForStage(NameBackupCleanup, envParameters)
-		log.Println("> Finishing", state, "stage.")
+		response.State = NameBackupCleanup
+		jobs.UpdateBackupJob(body.UUID, response)
+
+		log.Println("> Starting", response.State, "stage.")
+		status, response.BackupCleanupLog, response.BackupCleanupErrorLog, err = shell.ExecuteScriptForStage(NameBackupCleanup, envParameters)
+		jobs.UpdateBackupJob(body.UUID, response)
+		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
-		state = NamePostBackupUnlock
-		log.Println("> Starting", state, "stage.")
-		status, postBackupUnlockLog, postBackupUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostBackupUnlock, envParameters)
-		log.Println("> Finishing", state, "stage.")
+		response.State = NamePostBackupUnlock
+		jobs.UpdateBackupJob(body.UUID, response)
+
+		log.Println("> Starting", response.State, "stage.")
+		status, response.PostBackupUnlockLog, response.PostBackupUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostBackupUnlock, envParameters)
+		jobs.UpdateBackupJob(body.UUID, response)
+		log.Println("> Finishing", response.State, "stage.")
 	}
 
 	// Set end time and calculate execution time
@@ -187,22 +208,17 @@ func BackupRequest(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *
 	executionTime = timeutil.GetTimeDifferenceInMilliseconds(executionTime, currentTime.UnixNano())
 	endTime := timeutil.GetTimestamp(&currentTime)
 
+	response.ExecutionTime = executionTime
+	response.EndTime = endTime
+	response.State = "finished"
+	jobs.UpdateBackupJob(body.UUID, response)
+
 	// Write standard or error response according to status
 	if status {
-		state = "finished"
-		outputStatus = httpBodies.Status_success
+		response.Status = httpBodies.Status_success
+		response.Message = "backup successfully carried out"
 		log.Println("Backup successfully created")
 
-		response := &httpBodies.BackupResponse{Message: "backup successfully created",
-			Region: body.Destination.Region, Bucket: body.Destination.Bucket, FileName: filename, FileSize: httpBodies.FileSize{Size: fileSize, Unit: "byte"},
-			StartTime: startTime, EndTime: endTime, ExecutionTime: executionTime, Status: outputStatus, State: state,
-			// Logs
-			PreBackupLockLog: preBackupLockLog, PreBackupCheckLog: preBackupCheckLog, BackupLog: backupLog,
-			BackupCleanupLog: backupCleanupLog, PostBackupUnlockLog: postBackupUnlockLog,
-			// Error logs
-			PreBackupLockErrorLog: preBackupLockErrorLog, PreBackupCheckErrorLog: preBackupCheckErrorLog, BackupErrorLog: backupErrorLog,
-			BackupCleanupErrorLog: backupCleanupErrorLog, PostBackupUnlockErrorLog: postBackupUnlockErrorLog,
-		}
 		log.Println("Updating backup job", body.UUID, "with an response.")
 		jobs.UpdateBackupJob(body.UUID, response)
 	} else {
@@ -211,17 +227,13 @@ func BackupRequest(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *
 			errorMessage = err.Error()
 		}
 		errorlog.LogError("Backup failed due to '", errorMessage, "'")
-		response := &httpBodies.BackupResponse{
-			Message: "backup failed", ErrorMessage: errorMessage,
-			Region: body.Destination.Region, Bucket: body.Destination.Bucket, FileName: filename, FileSize: httpBodies.FileSize{Size: fileSize, Unit: "byte"},
-			StartTime: startTime, EndTime: endTime, ExecutionTime: executionTime, Status: outputStatus, State: state,
-			// Logs
-			PreBackupLockLog: preBackupLockLog, PreBackupCheckLog: preBackupCheckLog, BackupLog: backupLog,
-			BackupCleanupLog: backupCleanupLog, PostBackupUnlockLog: postBackupUnlockLog,
-			// Error logs
-			PreBackupLockErrorLog: preBackupLockErrorLog, PreBackupCheckErrorLog: preBackupCheckErrorLog, BackupErrorLog: backupErrorLog,
-			BackupCleanupErrorLog: backupCleanupErrorLog, PostBackupUnlockErrorLog: postBackupUnlockErrorLog,
-		}
+
+		response.Status = httpBodies.Status_failed
+		response.Message = "restore failed"
+		response.ErrorMessage = errorMessage
+
+		log.Println("Restore incompletely carried out")
+
 		log.Println("Updating backup job", body.UUID, "with an error response.")
 		jobs.UpdateBackupJob(body.UUID, response)
 

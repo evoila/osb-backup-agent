@@ -7,6 +7,7 @@ import (
 	"github.com/evoila/osb-backup-agent/errorlog"
 )
 
+const Status_running = "RUNNING"
 const Status_success = "SUCCESS"
 const Status_failed = "ERROR"
 

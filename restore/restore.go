@@ -45,7 +45,7 @@ func RemoveJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
-	log.Println("Async Restore request received.")
+	log.Println("-- Async Restore request received. --")
 
 	if !security.BasicAuth(w, r) {
 		return
@@ -93,26 +93,25 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 
 		// Starting new go routine to handle the backup request
 		log.Println("Starting new go routine to handle restore request for", body.UUID)
-		go RestoreRequest(body, job)
+		go Restore(body, job)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(201)
 	}
-	log.Println("Restore request completed.")
+	log.Println("-- Restore request completed. --")
 }
 
-func RestoreRequest(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *httpBodies.RestoreResponse {
+func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *httpBodies.RestoreResponse {
 
 	log.Println("Database", body.Restore.Database, "is supposed to get a restore.")
 	httpBodies.PrintOutRestoreBody(body)
 
 	response, _ := jobs.GetRestoreJob(body.UUID)
+	response.Message = "restore is running"
+	response.Status = httpBodies.Status_running
+	jobs.UpdateRestoreJob(body.UUID, response)
 
 	// Set up variables for filling response bodies later on
-	var state string
-	outputStatus := httpBodies.Status_failed
-	preRestoreLockLog, restoreLog, restoreCleanupLog, postRestoreUnlockLog := "", "", "", ""
-	preRestoreLockErrorLog, restoreErrorLog, restoreCleanupErrorLog, postRestoreUnlockErrorLog := "", "", "", ""
 	var err error
 
 	// Get environment parameters from request body
@@ -123,16 +122,24 @@ func RestoreRequest(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse
 	executionTime := currentTime.UnixNano()
 	startTime := timeutil.GetTimestamp(&currentTime)
 
+	response.StartTime = startTime
+	jobs.UpdateRestoreJob(body.UUID, response)
+
 	var status = true
 	if status {
-		state = NamePreRestoreLock
-		log.Println("> Starting", state, "stage.")
-		status, preRestoreLockLog, preRestoreLockErrorLog, err = shell.ExecuteScriptForStage(NamePreRestoreLock, envParameters)
-		log.Println("> Finishing", state, "stage.")
+		response.State = NamePreRestoreLock
+		jobs.UpdateRestoreJob(body.UUID, response)
+
+		log.Println("> Starting", response.State, "stage.")
+		status, response.PreRestoreLockLog, response.PreRestoreLockErrorLog, err = shell.ExecuteScriptForStage(NamePreRestoreLock, envParameters)
+		jobs.UpdateRestoreJob(body.UUID, response)
+		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
-		state = NameRestore
-		log.Println("> Starting", state, "stage.")
+		response.State = NameRestore
+		jobs.UpdateRestoreJob(body.UUID, response)
+
+		log.Println("> Starting", response.State, "stage.")
 
 		if body.Destination.Type == "S3" {
 			err = downloadFromS3(body)
@@ -140,27 +147,34 @@ func RestoreRequest(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse
 				status = false
 				log.Println("[ERROR] Downloading from S3 failed due to '", err.Error(), "'")
 			} else {
-				status, restoreLog, restoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
+				status, response.RestoreLog, response.RestoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
 					body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.Filename)
+				jobs.UpdateRestoreJob(body.UUID, response)
 			}
 		} else {
 			status = false
 			err = errors.New("type is not supported")
 		}
 
-		log.Println("> Finishing", state, "stage.")
+		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
-		state = NameRestoreCleanup
-		log.Println("> Starting", state, "stage.")
-		status, restoreCleanupLog, restoreCleanupErrorLog, err = shell.ExecuteScriptForStage(NameRestoreCleanup, envParameters)
-		log.Println("> Finishing", state, "stage.")
+		response.State = NameRestoreCleanup
+		jobs.UpdateRestoreJob(body.UUID, response)
+
+		log.Println("> Starting", response.State, "stage.")
+		status, response.RestoreCleanupLog, response.RestoreCleanupErrorLog, err = shell.ExecuteScriptForStage(NameRestoreCleanup, envParameters)
+		jobs.UpdateRestoreJob(body.UUID, response)
+		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
-		state = NamePostRestoreUnlock
-		log.Println("> Starting", state, "stage.")
-		status, postRestoreUnlockLog, postRestoreUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostRestoreUnlock, envParameters)
-		log.Println("> Finishing", state, "stage.")
+		response.State = NamePostRestoreUnlock
+		jobs.UpdateRestoreJob(body.UUID, response)
+
+		log.Println("> Starting", response.State, "stage.")
+		status, response.PostRestoreUnlockLog, response.PostRestoreUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostRestoreUnlock, envParameters)
+		jobs.UpdateRestoreJob(body.UUID, response)
+		log.Println("> Finishing", response.State, "stage.")
 	}
 
 	// Set end time and calculate execution time
@@ -168,19 +182,18 @@ func RestoreRequest(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse
 	executionTime = (currentTime.UnixNano() - executionTime) / 1000 / 1000 //convert from ns to ms
 	endTime := timeutil.GetTimestamp(&currentTime)
 
+	response.ExecutionTime = executionTime
+	response.EndTime = endTime
+	response.State = "finished"
+	jobs.UpdateRestoreJob(body.UUID, response)
+
 	// Write standard or error response according to status
 	if status {
-		state = "finished"
-		outputStatus = httpBodies.Status_success
+		response.Status = httpBodies.Status_success
+		response.Message = "restore successfully carried out"
+
 		log.Println("Restore successfully carried out")
 
-		response = &httpBodies.RestoreResponse{Status: outputStatus, Message: "restore successfully carried out",
-			StartTime: startTime, EndTime: endTime, ExecutionTime: executionTime,
-			// Logs
-			PreRestoreLockLog: preRestoreLockLog, RestoreLog: restoreLog, RestoreCleanupLog: restoreCleanupLog, PostRestoreUnlockLog: postRestoreUnlockLog,
-			// Error logs
-			PreRestoreLockErrorLog: preRestoreLockErrorLog, RestoreErrorLog: restoreErrorLog, RestoreCleanupErrorLog: restoreCleanupErrorLog, PostRestoreUnlockErrorLog: postRestoreUnlockErrorLog,
-		}
 		log.Println("Updating restore job", body.UUID, "with an response.")
 		jobs.UpdateRestoreJob(body.UUID, response)
 	} else {
@@ -189,13 +202,13 @@ func RestoreRequest(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse
 			errorMessage = err.Error()
 		}
 		errorlog.LogError("Restore failed due to '", errorMessage, "'")
-		response = &httpBodies.RestoreResponse{
-			Status: outputStatus, Message: "restore failed", State: state, ErrorMessage: errorMessage,
-			// Logs
-			PreRestoreLockLog: preRestoreLockLog, RestoreLog: restoreLog, RestoreCleanupLog: restoreCleanupLog, PostRestoreUnlockLog: postRestoreUnlockLog,
-			// Error logs
-			PreRestoreLockErrorLog: preRestoreLockErrorLog, RestoreErrorLog: restoreErrorLog, RestoreCleanupErrorLog: restoreCleanupErrorLog, PostRestoreUnlockErrorLog: postRestoreUnlockErrorLog,
-		}
+
+		response.Status = httpBodies.Status_failed
+		response.Message = "restore failed"
+		response.ErrorMessage = errorMessage
+
+		log.Println("Restore incompletely carried out")
+
 		log.Println("Updating restore job", body.UUID, "with an error response.")
 		jobs.UpdateRestoreJob(body.UUID, response)
 	}
