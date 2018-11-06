@@ -8,8 +8,8 @@ import (
 )
 
 const Status_running = "RUNNING"
-const Status_success = "SUCCESS"
-const Status_failed = "ERROR"
+const Status_success = "SUCCEEDED"
+const Status_failed = "FAILED"
 
 type BackupResponse struct {
 	Status                   string   `json:"status"`
@@ -65,13 +65,13 @@ type ErrorResponse struct {
 }
 
 type BackupBody struct {
-	UUID        string
+	Id          string
 	Destination DestinationInformation
 	Backup      DbInformation
 }
 
 type RestoreBody struct {
-	UUID        string
+	Id          string
 	Destination DestinationInformation
 	Restore     DbInformation
 }
@@ -96,7 +96,7 @@ type DbInformation struct {
 func PrintOutBackupBody(body BackupBody) {
 
 	log.Println("Backup Request Body: {\n",
-		errorlog.Concat([]string{"    \"UUID\" : ", body.UUID, "\",\n"}, ""),
+		errorlog.Concat([]string{"    \"id\" : ", body.Id, "\",\n"}, ""),
 		"    \"destination\" : {\n",
 		errorlog.Concat([]string{"        \"type\" : \"", body.Destination.Type, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),
@@ -117,12 +117,12 @@ func PrintOutBackupBody(body BackupBody) {
 
 // Returns true if no fields are missing
 func CheckForMissingFieldsInRestoreBody(body RestoreBody) bool {
-	return body.UUID != "" && CheckForMissingFieldDestinationInformation(body.Destination, false) && CheckForMissingFieldsInDbInformation(body.Restore)
+	return body.Id != "" && CheckForMissingFieldDestinationInformation(body.Destination, false) && CheckForMissingFieldsInDbInformation(body.Restore)
 }
 
 // Returns true if no fields are missing
 func CheckForMissingFieldsInBackupBody(body BackupBody) bool {
-	return body.UUID != "" && CheckForMissingFieldDestinationInformation(body.Destination, true) && CheckForMissingFieldsInDbInformation(body.Backup)
+	return body.Id != "" && CheckForMissingFieldDestinationInformation(body.Destination, true) && CheckForMissingFieldsInDbInformation(body.Backup)
 }
 
 func CheckForMissingFieldDestinationInformation(body DestinationInformation, fileCanBeMissing bool) bool {
@@ -136,6 +136,7 @@ func CheckForMissingFieldsInDbInformation(body DbInformation) bool {
 func PrintOutRestoreBody(body RestoreBody) {
 
 	log.Println("Restore Request Body: {\n",
+		errorlog.Concat([]string{"    \"id\" : ", body.Id, "\",\n"}, ""),
 		"    \"destination\" : {\n",
 		errorlog.Concat([]string{"        \"type\" : \"", body.Destination.Type, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),

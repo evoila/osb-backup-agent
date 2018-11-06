@@ -29,10 +29,10 @@ The agent supports three http endpoints for status, backup and restore. The endp
 |----|----|----|----|
 |/status|GET| - |Simple check whether the agent is running. |
 |/backup|POST| See Backup below |Trigger the backup procedure for the service.|
-|/backup/{UUID}|GET| - |Returns the status of the requested backup job.|
+|/backup/{id}|GET| - |Returns the status of the requested backup job.|
 |/backup|DELETE| See Job deletion body below |Removes a result of a backup job.|
 |/restore|PUT| See Restore below |Trigger the restore procedure for the service.|
-|/restore/{UUID}|GET| - |Returns the status of the requested restore job.|
+|/restore/{id}|GET| - |Returns the status of the requested restore job.|
 |/restore|DELETE| See Job deletion body below |Removes a result of a restore job.|
 
 Following status codes can be expected for multiple endpoints:
@@ -54,25 +54,25 @@ The backup agent intentionally returns the following status codes. Codes that di
 | 201 | - | A backup was triggered and is getting run asynchronously. |
 | 400| See Polling Body| The information in the body are not sufficient. |
 | 401| See Simple response body rigth below| The provided credentials are not correct. |
-| 409 | See Polling Body| There already exists a job with the given UUID.|
+| 409 | See Polling Body| There already exists a job with the given id.|
 
 #### Polling Backup Status ####
-This call request the status of the dedicated job identified by the given UUID.
+This call request the status of the dedicated job identified by the given id.
 
-Endpoint: GET /backup/{UUID}
+Endpoint: GET /backup/{id}
 
 ##### Status Codes and their meaning #####
 The backup agent intentionally returns the following status codes. Codes that differ are likely to be unexpected and not intended to be returned.
 | Code | Body | Description |
 | --- | --- | --- |
 | 200 | See Polling Body | A matching job was found and its status is returned. |
-| 400| - | No valid UUID was provided. |
+| 400| - | No valid id was provided. |
 | 401| See Simple response body| The provided credentials are not correct. |
-| 404 | - | There exists no job for the given UUID.|
+| 404 | - | There exists no job for the given id.|
 
 
 #### Backup Job Deletion ####
-This call requests the deletion of a result of a backup job. This should be done to either use the UUID again or free the space for the agent.
+This call requests the deletion of a result of a backup job. This should be done to either use the id again or free the space for the agent.
 
 Endpoint: DELETE /backup
 
@@ -104,16 +104,16 @@ See Trigger Backup Status Codes and their meaning
 
 
 #### Polling Restore Status ####
-This call request the status of the dedicated job identified by the given UUID.
+This call request the status of the dedicated job identified by the given id.
 
-Endpoint: GET /restore/{UUID}
+Endpoint: GET /restore/{id}
 
 ##### Status Codes and their meaning #####
 See Backup Polling Status Codes and their meaning
 
 
 #### Restore Job Deletion ####
-This call requests the deletion of a result of a backup job. This should be done to either use the UUID again or free the space for the agent.
+This call requests the deletion of a result of a backup job. This should be done to either use the id again or free the space for the agent.
 
 Endpoint: DELETE /restore
 
@@ -126,7 +126,7 @@ See Backup Job Deletion Status Codes and their meaning
 ### Trigger Backup Body ###
 ```json
 {
-    "UUID" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
+    "id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
     "destination" : {
         "type": "S3",
         "bucket": "bucketName",
@@ -152,7 +152,7 @@ Please note that objects in the parameters object can not have nested objects, a
 ### Trigger Restore Body ###
 ```json
 {
-    "UUID" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
+    "id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
     "destination" : {
         "type": "S3",
         "bucket": "bucketName",
@@ -179,7 +179,7 @@ Please note that objects in the parameters object can not have nested objects, a
 
 ```json
 {
-	"UUID" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1"
+	"id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1"
 }
 ```
 

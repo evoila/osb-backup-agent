@@ -32,11 +32,11 @@ func RemoveJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, err := utils.UnmarshallIntoRestoreBody(w, r)
-	if err != nil || utils.IsUUIDEmptyInRestoreBodyWithResponse(w, r, body) {
+	if err != nil || utils.IsIdEmptyInRestoreBodyWithResponse(w, r, body) {
 		return
 	}
 
-	if jobs.RemoveRestoreJob(body.UUID) {
+	if jobs.RemoveRestoreJob(body.Id) {
 		w.WriteHeader(200)
 	} else {
 		w.WriteHeader(410)
@@ -54,13 +54,13 @@ func HandlePolling(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 
-	UUID, exists := vars["UUID"]
+	Id, exists := vars["id"]
 	if !exists {
 		w.WriteHeader(400)
 		return
 	}
 
-	job, existingJob := jobs.GetRestoreJob(UUID)
+	job, existingJob := jobs.GetRestoreJob(Id)
 	if !existingJob {
 		w.WriteHeader(404)
 		return
@@ -80,11 +80,11 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, err := utils.UnmarshallIntoRestoreBody(w, r)
-	if err != nil || utils.IsUUIDEmptyInRestoreBodyWithResponse(w, r, body) {
+	if err != nil || utils.IsIdEmptyInRestoreBodyWithResponse(w, r, body) {
 		return
 	}
 
-	job, exists := jobs.GetRestoreJob(body.UUID)
+	job, exists := jobs.GetRestoreJob(body.Id)
 	if exists {
 		log.Println("Job does exist -> showing current result.")
 		w.Header().Set("Content-Type", "application/json")
@@ -100,8 +100,8 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 			errorlog.LogError("Restore failed during body deserialization due to '", err.Error(), "'")
 			var response = httpBodies.RestoreResponse{Status: httpBodies.Status_failed, Message: "Restore failed.", State: "Body Deserialization", ErrorMessage: err.Error()}
 
-			jobs.AddNewRestoreJob(body.UUID)
-			jobs.UpdateRestoreJob(body.UUID, &response)
+			jobs.AddNewRestoreJob(body.Id)
+			jobs.UpdateRestoreJob(body.Id, &response)
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(400)
@@ -109,7 +109,7 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		job, err := jobs.AddNewRestoreJob(body.UUID)
+		job, err := jobs.AddNewRestoreJob(body.Id)
 		if err != nil {
 			errorlog.LogError("Creating a new job failed due to '", err.Error(), "'")
 			var response = httpBodies.RestoreResponse{Status: httpBodies.Status_failed, Message: "Restore failed.", State: "Job creation", ErrorMessage: err.Error(),
@@ -122,7 +122,7 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Starting new go routine to handle the backup request
-		log.Println("Starting new go routine to handle restore request for", body.UUID)
+		log.Println("Starting new go routine to handle restore request for", body.Id)
 		go Restore(body, job)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -136,10 +136,10 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 	log.Println("Database", body.Restore.Database, "is supposed to get a restore.")
 	httpBodies.PrintOutRestoreBody(body)
 
-	response, _ := jobs.GetRestoreJob(body.UUID)
+	response, _ := jobs.GetRestoreJob(body.Id)
 	response.Message = "restore is running"
 	response.Status = httpBodies.Status_running
-	jobs.UpdateRestoreJob(body.UUID, response)
+	jobs.UpdateRestoreJob(body.Id, response)
 
 	// Set up variables for filling response bodies later on
 	var err error
@@ -153,21 +153,21 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 	startTime := timeutil.GetTimestamp(&currentTime)
 
 	response.StartTime = startTime
-	jobs.UpdateRestoreJob(body.UUID, response)
+	jobs.UpdateRestoreJob(body.Id, response)
 
 	var status = true
 	if status {
 		response.State = NamePreRestoreLock
-		jobs.UpdateRestoreJob(body.UUID, response)
+		jobs.UpdateRestoreJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
 		status, response.PreRestoreLockLog, response.PreRestoreLockErrorLog, err = shell.ExecuteScriptForStage(NamePreRestoreLock, envParameters)
-		jobs.UpdateRestoreJob(body.UUID, response)
+		jobs.UpdateRestoreJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
 		response.State = NameRestore
-		jobs.UpdateRestoreJob(body.UUID, response)
+		jobs.UpdateRestoreJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
 
@@ -179,7 +179,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 			} else {
 				status, response.RestoreLog, response.RestoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
 					body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.Filename)
-				jobs.UpdateRestoreJob(body.UUID, response)
+				jobs.UpdateRestoreJob(body.Id, response)
 			}
 		} else {
 			status = false
@@ -190,20 +190,20 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 	}
 	if status {
 		response.State = NameRestoreCleanup
-		jobs.UpdateRestoreJob(body.UUID, response)
+		jobs.UpdateRestoreJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
 		status, response.RestoreCleanupLog, response.RestoreCleanupErrorLog, err = shell.ExecuteScriptForStage(NameRestoreCleanup, envParameters)
-		jobs.UpdateRestoreJob(body.UUID, response)
+		jobs.UpdateRestoreJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
 		response.State = NamePostRestoreUnlock
-		jobs.UpdateRestoreJob(body.UUID, response)
+		jobs.UpdateRestoreJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
 		status, response.PostRestoreUnlockLog, response.PostRestoreUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostRestoreUnlock, envParameters)
-		jobs.UpdateRestoreJob(body.UUID, response)
+		jobs.UpdateRestoreJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
 
@@ -215,7 +215,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 	response.ExecutionTime = executionTime
 	response.EndTime = endTime
 	response.State = "finished"
-	jobs.UpdateRestoreJob(body.UUID, response)
+	jobs.UpdateRestoreJob(body.Id, response)
 
 	// Write standard or error response according to status
 	if status {
@@ -224,8 +224,8 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 
 		log.Println("Restore successfully carried out")
 
-		log.Println("Updating restore job", body.UUID, "with an response.")
-		jobs.UpdateRestoreJob(body.UUID, response)
+		log.Println("Updating restore job", body.Id, "with an response.")
+		jobs.UpdateRestoreJob(body.Id, response)
 	} else {
 		var errorMessage = "Unknown error"
 		if err != nil {
@@ -239,10 +239,10 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 
 		log.Println("Restore incompletely carried out")
 
-		log.Println("Updating restore job", body.UUID, "with an error response.")
-		jobs.UpdateRestoreJob(body.UUID, response)
+		log.Println("Updating restore job", body.Id, "with an error response.")
+		jobs.UpdateRestoreJob(body.Id, response)
 	}
-	log.Println("Finished restore for", body.UUID)
+	log.Println("Finished restore for", body.Id)
 	return response
 
 }

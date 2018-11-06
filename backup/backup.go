@@ -43,11 +43,11 @@ func RemoveJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, err := utils.UnmarshallIntoBackupBody(w, r)
-	if err != nil || utils.IsUUIDEmptyInBackupBodyWithResponse(w, r, body) {
+	if err != nil || utils.IsIdEmptyInBackupBodyWithResponse(w, r, body) {
 		return
 	}
 
-	if jobs.RemoveBackupJob(body.UUID) {
+	if jobs.RemoveBackupJob(body.Id) {
 		w.WriteHeader(200)
 	} else {
 		w.WriteHeader(410)
@@ -65,13 +65,13 @@ func HandlePolling(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 
-	UUID, exists := vars["UUID"]
+	Id, exists := vars["id"]
 	if !exists {
 		w.WriteHeader(400)
 		return
 	}
 
-	job, existingJob := jobs.GetBackupJob(UUID)
+	job, existingJob := jobs.GetBackupJob(Id)
 	if !existingJob {
 		w.WriteHeader(404)
 		return
@@ -95,12 +95,12 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if utils.IsUUIDEmptyInBackupBodyWithResponse(w, r, body) {
+	if utils.IsIdEmptyInBackupBodyWithResponse(w, r, body) {
 
 		return
 	}
 
-	job, exists := jobs.GetBackupJob(body.UUID)
+	job, exists := jobs.GetBackupJob(body.Id)
 	if exists {
 		log.Println("Job does exist -> showing current result.")
 		w.Header().Set("Content-Type", "application/json")
@@ -115,8 +115,8 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 			err = errors.New("body is missing essential fields")
 			errorlog.LogError("Backup failed during body deserialization due to '", err.Error(), "'")
 			var response = httpBodies.BackupResponse{Status: httpBodies.Status_failed, Message: "Backup failed.", State: "Body Deserialization", ErrorMessage: err.Error()}
-			jobs.AddNewBackupJob(body.UUID)
-			jobs.UpdateBackupJob(body.UUID, &response)
+			jobs.AddNewBackupJob(body.Id)
+			jobs.UpdateBackupJob(body.Id, &response)
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(400)
@@ -124,7 +124,7 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		job, err := jobs.AddNewBackupJob(body.UUID)
+		job, err := jobs.AddNewBackupJob(body.Id)
 		if err != nil {
 			errorlog.LogError("Creating a new job failed due to '", err.Error(), "'")
 			var response = httpBodies.BackupResponse{Status: httpBodies.Status_failed, Message: "Backup failed.", State: "Job creation", ErrorMessage: err.Error(),
@@ -137,7 +137,7 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Starting new go routine to handle the backup request
-		log.Println("Starting new go routine to handle backup request for", body.UUID)
+		log.Println("Starting new go routine to handle backup request for", body.Id)
 		go Backup(body, job)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -151,12 +151,12 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 	log.Println("Database", body.Backup.Database, "is supposed to get a new backup.")
 	httpBodies.PrintOutBackupBody(body)
 
-	response, _ := jobs.GetBackupJob(body.UUID)
+	response, _ := jobs.GetBackupJob(body.Id)
 	response.Message = "backup is running"
 	response.Status = httpBodies.Status_running
 	response.Bucket = body.Destination.Bucket
 	response.Region = body.Destination.Region
-	jobs.UpdateBackupJob(body.UUID, response)
+	jobs.UpdateBackupJob(body.Id, response)
 
 	// Set up variables for filling response bodies later on
 	var fileSize int64
@@ -171,37 +171,37 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 	startTime := timeutil.GetTimestamp(&currentTime)
 
 	response.StartTime = startTime
-	jobs.UpdateBackupJob(body.UUID, response)
+	jobs.UpdateBackupJob(body.Id, response)
 
 	// Start execution of scripts
 	var status = true
 	if status {
 		response.State = NamePreBackupLock
-		jobs.UpdateBackupJob(body.UUID, response)
+		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
 		status, response.PreBackupLockLog, response.PreBackupLockErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupLock, envParameters)
-		jobs.UpdateBackupJob(body.UUID, response)
+		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
 		response.State = NamePreBackupCheck
-		jobs.UpdateBackupJob(body.UUID, response)
+		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
 		status, response.PreBackupCheckLog, response.PreBackupCheckErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupCheck, envParameters)
-		jobs.UpdateBackupJob(body.UUID, response)
+		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
 		response.State = NameBackup
-		jobs.UpdateBackupJob(body.UUID, response)
+		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
 		var path = GetBackupPath(body.Backup.Host, body.Backup.Database)
 		status, response.BackupLog, response.BackupErrorLog, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
 			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, path)
-		jobs.UpdateBackupJob(body.UUID, response)
+		jobs.UpdateBackupJob(body.Id, response)
 		if err == nil {
 
 			if body.Destination.Type == "S3" {
@@ -211,7 +211,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 					log.Println("[ERROR] Uploading to S3 failed due to '", err.Error(), "'")
 				}
 				response.FileSize = httpBodies.FileSize{Size: fileSize, Unit: "byte"}
-				jobs.UpdateBackupJob(body.UUID, response)
+				jobs.UpdateBackupJob(body.Id, response)
 			} else {
 				status = false
 				err = errors.New("type is not supported")
@@ -221,20 +221,20 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 	}
 	if status {
 		response.State = NameBackupCleanup
-		jobs.UpdateBackupJob(body.UUID, response)
+		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
 		status, response.BackupCleanupLog, response.BackupCleanupErrorLog, err = shell.ExecuteScriptForStage(NameBackupCleanup, envParameters)
-		jobs.UpdateBackupJob(body.UUID, response)
+		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
 		response.State = NamePostBackupUnlock
-		jobs.UpdateBackupJob(body.UUID, response)
+		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
 		status, response.PostBackupUnlockLog, response.PostBackupUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostBackupUnlock, envParameters)
-		jobs.UpdateBackupJob(body.UUID, response)
+		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
 
@@ -246,7 +246,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 	response.ExecutionTime = executionTime
 	response.EndTime = endTime
 	response.State = "finished"
-	jobs.UpdateBackupJob(body.UUID, response)
+	jobs.UpdateBackupJob(body.Id, response)
 
 	// Write standard or error response according to status
 	if status {
@@ -254,8 +254,8 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		response.Message = "backup successfully carried out"
 		log.Println("Backup successfully created")
 
-		log.Println("Updating backup job", body.UUID, "with an response.")
-		jobs.UpdateBackupJob(body.UUID, response)
+		log.Println("Updating backup job", body.Id, "with an response.")
+		jobs.UpdateBackupJob(body.Id, response)
 	} else {
 		var errorMessage = "Unknown error"
 		if err != nil {
@@ -269,11 +269,11 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 
 		log.Println("Restore incompletely carried out")
 
-		log.Println("Updating backup job", body.UUID, "with an error response.")
-		jobs.UpdateBackupJob(body.UUID, response)
+		log.Println("Updating backup job", body.Id, "with an error response.")
+		jobs.UpdateBackupJob(body.Id, response)
 
 	}
-	log.Println("Finished backup for", body.UUID)
+	log.Println("Finished backup for", body.Id)
 	return response
 }
 
