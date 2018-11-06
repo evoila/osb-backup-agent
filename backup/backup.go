@@ -11,10 +11,12 @@ import (
 	"github.com/evoila/osb-backup-agent/configuration"
 	"github.com/evoila/osb-backup-agent/errorlog"
 	"github.com/evoila/osb-backup-agent/httpBodies"
+	"github.com/evoila/osb-backup-agent/jobs"
 	"github.com/evoila/osb-backup-agent/s3"
 	"github.com/evoila/osb-backup-agent/security"
 	"github.com/evoila/osb-backup-agent/shell"
 	"github.com/evoila/osb-backup-agent/timeutil"
+	"github.com/evoila/osb-backup-agent/utils"
 )
 
 // NamePreBackupLock : Name of the script to call for the pre-backup-lock stage
@@ -32,37 +34,89 @@ const NameBackupCleanup = "backup-cleanup"
 // NamePostBackupUnlock : Name of the script to call for the post-backup-unlock stage
 const NamePostBackupUnlock = "post-backup-unlock"
 
-// BackupRequest : Request handler for backup requests.
-func BackupRequest(w http.ResponseWriter, r *http.Request) {
-	log.Println("Backup request received.")
+func RemoveJob(w http.ResponseWriter, r *http.Request) {
+	log.Println("Backup job deletion request received.")
+	if !security.BasicAuth(w, r) {
+		return
+	}
+
+	body, err := utils.UnmarshallIntoBackupBody(w, r)
+	if err != nil || utils.IsUUIDEmptyInBackupBodyWithResponse(w, r, body) {
+		return
+	}
+
+	if jobs.RemoveBackupJob(body.UUID) {
+		w.WriteHeader(200)
+	} else {
+		w.WriteHeader(410)
+	}
+
+	log.Println("Backup job deletion request completed.")
+}
+
+func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
+	log.Println("Async Backup request received.")
 
 	if !security.BasicAuth(w, r) {
 		return
 	}
 
-	// Decode request body and scan for empty fields
-	decoder := json.NewDecoder(r.Body)
-	var body httpBodies.BackupBody
-	err := decoder.Decode(&body)
-	missingFields := !httpBodies.CheckForMissingFieldsInBackupBody(body)
-
-	// Handle error or missing fields of request body
-	if err != nil || missingFields {
-		if err == nil {
-			err = errors.New("body is missing essential fields")
-		}
-		errorlog.LogError("Backup failed during body deserialization due to '", err.Error(), "'")
-		var response = httpBodies.BackupErrorResponse{Status: httpBodies.Status_failed, Message: "Backup failed.", State: "Body Deserialization", ErrorMessage: err.Error(),
-			StartTime: "", EndTime: "", ExecutionTime: 0,
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(400)
-		json.NewEncoder(w).Encode(response)
+	body, err := utils.UnmarshallIntoBackupBody(w, r)
+	if err != nil || utils.IsUUIDEmptyInBackupBodyWithResponse(w, r, body) {
 		return
 	}
 
+	job, exists := jobs.GetBackupJob(body.UUID)
+	if exists {
+		log.Println("Job does exist -> showing current result.")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		json.NewEncoder(w).Encode(job)
+	} else {
+		// No job exists yet -> create new one
+		log.Println("Job does not exist yet -> creating a new one.")
+
+		missingFields := !httpBodies.CheckForMissingFieldsInBackupBody(body)
+		if missingFields {
+			err = errors.New("body is missing essential fields")
+			errorlog.LogError("Backup failed during body deserialization due to '", err.Error(), "'")
+			var response = httpBodies.BackupResponse{Status: httpBodies.Status_failed, Message: "Backup failed.", State: "Body Deserialization", ErrorMessage: err.Error(),
+				StartTime: "", EndTime: "", ExecutionTime: 0,
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(400)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		job, err := jobs.AddNewBackupJob(body.UUID)
+		if err != nil {
+			errorlog.LogError("Creating a new job failed due to '", err.Error(), "'")
+			var response = httpBodies.BackupResponse{Status: httpBodies.Status_failed, Message: "Backup failed.", State: "Job creation", ErrorMessage: err.Error(),
+				StartTime: "", EndTime: "", ExecutionTime: 0,
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(409)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		// Starting new go routine to handle the backup request
+		log.Println("Starting new go routine to handle backup request for", body.UUID)
+		go BackupRequest(body, job)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(201)
+	}
+	log.Println("Backup request completed.")
+}
+
+func BackupRequest(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBodies.BackupResponse {
+
 	log.Println("Database", body.Backup.Database, "is supposed to get a new backup.")
 	httpBodies.PrintOutBackupBody(body)
+
+	response, _ := jobs.GetBackupJob(body.UUID)
 
 	// Set up variables for filling response bodies later on
 	var state, filename string
@@ -70,6 +124,7 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 	preBackupLockLog, preBackupCheckLog, backupLog, backupCleanupLog, postBackupUnlockLog := "", "", "", "", ""
 	preBackupLockErrorLog, preBackupCheckErrorLog, backupErrorLog, backupCleanupErrorLog, postBackupUnlockErrorLog := "", "", "", "", ""
 	var fileSize int64
+	var err error
 
 	// Get environment parameters from request body
 	var envParameters = httpBodies.GetParametersAsEnvVarStringSlice(body.Backup.Parameters)
@@ -133,14 +188,14 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 	endTime := timeutil.GetTimestamp(&currentTime)
 
 	// Write standard or error response according to status
-	w.Header().Set("Content-Type", "application/json")
 	if status {
 		state = "finished"
 		outputStatus = httpBodies.Status_success
 		log.Println("Backup successfully created")
-		var response = &httpBodies.BackupResponse{Message: "backup successfully created",
+
+		response := &httpBodies.BackupResponse{Message: "backup successfully created",
 			Region: body.Destination.Region, Bucket: body.Destination.Bucket, FileName: filename, FileSize: httpBodies.FileSize{Size: fileSize, Unit: "byte"},
-			StartTime: startTime, EndTime: endTime, ExecutionTime: executionTime, Status: outputStatus,
+			StartTime: startTime, EndTime: endTime, ExecutionTime: executionTime, Status: outputStatus, State: state,
 			// Logs
 			PreBackupLockLog: preBackupLockLog, PreBackupCheckLog: preBackupCheckLog, BackupLog: backupLog,
 			BackupCleanupLog: backupCleanupLog, PostBackupUnlockLog: postBackupUnlockLog,
@@ -148,15 +203,18 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 			PreBackupLockErrorLog: preBackupLockErrorLog, PreBackupCheckErrorLog: preBackupCheckErrorLog, BackupErrorLog: backupErrorLog,
 			BackupCleanupErrorLog: backupCleanupErrorLog, PostBackupUnlockErrorLog: postBackupUnlockErrorLog,
 		}
-		json.NewEncoder(w).Encode(response)
+		log.Println("Updating backup job", body.UUID, "with an response.")
+		jobs.UpdateBackupJob(body.UUID, response)
 	} else {
 		var errorMessage = "Unknown error"
 		if err != nil {
 			errorMessage = err.Error()
 		}
 		errorlog.LogError("Backup failed due to '", errorMessage, "'")
-		var response = httpBodies.BackupErrorResponse{
-			Status: outputStatus, Message: "backup failed", State: state, ErrorMessage: errorMessage,
+		response := &httpBodies.BackupResponse{
+			Message: "backup failed", ErrorMessage: errorMessage,
+			Region: body.Destination.Region, Bucket: body.Destination.Bucket, FileName: filename, FileSize: httpBodies.FileSize{Size: fileSize, Unit: "byte"},
+			StartTime: startTime, EndTime: endTime, ExecutionTime: executionTime, Status: outputStatus, State: state,
 			// Logs
 			PreBackupLockLog: preBackupLockLog, PreBackupCheckLog: preBackupCheckLog, BackupLog: backupLog,
 			BackupCleanupLog: backupCleanupLog, PostBackupUnlockLog: postBackupUnlockLog,
@@ -164,11 +222,12 @@ func BackupRequest(w http.ResponseWriter, r *http.Request) {
 			PreBackupLockErrorLog: preBackupLockErrorLog, PreBackupCheckErrorLog: preBackupCheckErrorLog, BackupErrorLog: backupErrorLog,
 			BackupCleanupErrorLog: backupCleanupErrorLog, PostBackupUnlockErrorLog: postBackupUnlockErrorLog,
 		}
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(response)
+		log.Println("Updating backup job", body.UUID, "with an error response.")
+		jobs.UpdateBackupJob(body.UUID, response)
 
 	}
-	log.Println("Finished backup request.")
+	log.Println("Finished backup for", body.UUID)
+	return response
 }
 
 func uploadToS3(body httpBodies.BackupBody) (string, int64, error) {

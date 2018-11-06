@@ -13,6 +13,8 @@ const Status_failed = "ERROR"
 type BackupResponse struct {
 	Status                   string   `json:"status"`
 	Message                  string   `json:"message"`
+	State                    string   `json:"state,omitempty"`
+	ErrorMessage             string   `json:"error_message,omitempty"`
 	Region                   string   `json:"region"`
 	Bucket                   string   `json:"bucket"`
 	FileName                 string   `json:"filename"`
@@ -37,47 +39,11 @@ type FileSize struct {
 	Unit string `json:"unit"`
 }
 
-type BackupErrorResponse struct {
-	Status                   string `json:"status"`
-	Message                  string `json:"message"`
-	State                    string `json:"state"`
-	ErrorMessage             string `json:"error_message"`
-	StartTime                string `json:"start_time"`
-	EndTime                  string `json:"end_time"`
-	ExecutionTime            int64  `json:"execution_time_ms"`
-	PreBackupLockLog         string `json:"pre_backup_lock_log"`
-	PreBackupLockErrorLog    string `json:"pre_backup_lock_errorlog"`
-	PreBackupCheckLog        string `json:"pre_backup_check_log"`
-	PreBackupCheckErrorLog   string `json:"pre_backup_check_errorlog"`
-	BackupLog                string `json:"backup_log"`
-	BackupErrorLog           string `json:"backup_errorlog"`
-	BackupCleanupLog         string `json:"backup_cleanup_log"`
-	BackupCleanupErrorLog    string `json:"backup_cleanup_errorlog"`
-	PostBackupUnlockLog      string `json:"post_backup_unlock_log"`
-	PostBackupUnlockErrorLog string `json:"post_backup_unlock_errorlog"`
-}
-
 type RestoreResponse struct {
 	Status                    string `json:"status"`
 	Message                   string `json:"message"`
-	StartTime                 string `json:"start_time"`
-	EndTime                   string `json:"end_time"`
-	ExecutionTime             int64  `json:"execution_time_ms"`
-	PreRestoreLockLog         string `json:"pre_restore_lock_log"`
-	PreRestoreLockErrorLog    string `json:"pre_restore_lock_errorlog"`
-	RestoreLog                string `json:"restore_log"`
-	RestoreErrorLog           string `json:"restore_errorlog"`
-	RestoreCleanupLog         string `json:"restore_cleanup_log"`
-	RestoreCleanupErrorLog    string `json:"restore_cleanup_errorlog"`
-	PostRestoreUnlockLog      string `json:"post_restore_unlock_log"`
-	PostRestoreUnlockErrorLog string `json:"post_restore_unlock_errorlog"`
-}
-
-type RestoreErrorResponse struct {
-	Status                    string `json:"status"`
-	Message                   string `json:"message"`
-	State                     string `json:"state"`
-	ErrorMessage              string `json:"error_message"`
+	State                     string `json:"state,omitempty"`
+	ErrorMessage              string `json:"error_message,omitempty"`
 	StartTime                 string `json:"start_time"`
 	EndTime                   string `json:"end_time"`
 	ExecutionTime             int64  `json:"execution_time_ms"`
@@ -98,11 +64,13 @@ type ErrorResponse struct {
 }
 
 type BackupBody struct {
+	UUID        string
 	Destination DestinationInformation
 	Backup      DbInformation
 }
 
 type RestoreBody struct {
+	UUID        string
 	Destination DestinationInformation
 	Restore     DbInformation
 }
@@ -127,6 +95,7 @@ type DbInformation struct {
 func PrintOutBackupBody(body BackupBody) {
 
 	log.Println("Backup Request Body: {\n",
+		errorlog.Concat([]string{"    \"UUID\" : ", body.UUID, "\",\n"}, ""),
 		"    \"destination\" : {\n",
 		errorlog.Concat([]string{"        \"type\" : \"", body.Destination.Type, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),
@@ -145,12 +114,14 @@ func PrintOutBackupBody(body BackupBody) {
 		"}")
 }
 
+// Returns true if no fields are missing
 func CheckForMissingFieldsInRestoreBody(body RestoreBody) bool {
-	return CheckForMissingFieldDestinationInformation(body.Destination, false) && CheckForMissingFieldsInDbInformation(body.Restore)
+	return body.UUID != "" && CheckForMissingFieldDestinationInformation(body.Destination, false) && CheckForMissingFieldsInDbInformation(body.Restore)
 }
 
+// Returns true if no fields are missing
 func CheckForMissingFieldsInBackupBody(body BackupBody) bool {
-	return CheckForMissingFieldDestinationInformation(body.Destination, true) && CheckForMissingFieldsInDbInformation(body.Backup)
+	return body.UUID != "" && CheckForMissingFieldDestinationInformation(body.Destination, true) && CheckForMissingFieldsInDbInformation(body.Backup)
 }
 
 func CheckForMissingFieldDestinationInformation(body DestinationInformation, fileCanBeMissing bool) bool {

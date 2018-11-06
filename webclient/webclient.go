@@ -10,6 +10,7 @@ import (
 	"github.com/evoila/osb-backup-agent/backup"
 	"github.com/evoila/osb-backup-agent/configuration"
 	"github.com/evoila/osb-backup-agent/health"
+	"github.com/evoila/osb-backup-agent/jobs"
 	"github.com/evoila/osb-backup-agent/restore"
 	"github.com/gorilla/mux"
 )
@@ -28,6 +29,7 @@ func StartWebAgent() {
 		os.Exit(1)
 	}
 	var portAsString = strings.Join([]string{":", strconv.Itoa(port)}, "")
+	jobs.SetUpJobStructure()
 	log.Println("Successfully prepared the web client")
 
 	log.Println("Starting and running web client on port", GetUsedPort())
@@ -39,9 +41,13 @@ func setUpEndpoints(router *mux.Router) {
 	log.Println("GET /status")
 	router.HandleFunc("/status", health.HealthCheck).Methods("GET")
 	log.Println("POST /backup")
-	router.HandleFunc("/backup", backup.BackupRequest).Methods("POST")
+	router.HandleFunc("/backup", backup.HandleAsyncRequest).Methods("POST")
+	log.Println("DELETE /backup")
+	router.HandleFunc("/backup", backup.RemoveJob).Methods("DELETE")
 	log.Println("PUT /restore")
-	router.HandleFunc("/restore", restore.RestoreRequest).Methods("PUT")
+	router.HandleFunc("/restore", restore.HandleAsyncRequest).Methods("PUT")
+	log.Println("DELETE /restore")
+	router.HandleFunc("/restore", restore.RemoveJob).Methods("DELETE")
 	log.Println("End points are set up.")
 }
 
