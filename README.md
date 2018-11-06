@@ -8,7 +8,6 @@ Currently implemented cloud storages: **S3**
 Download this repository and then get its dependencies via ```glide update```.
 
 
-
 ## Configuration ##
 The agent uses environment variables to configurate its parameters.
 
@@ -29,10 +28,102 @@ The agent supports three http endpoints for status, backup and restore. The endp
 |Endpoint|Method|Body|Description|
 |----|----|----|----|
 |/status|GET| - |Simple check whether the agent is running. |
-|/backup|POST| See Backup body below |Trigger the backup procedure for the service.|
-|/restore|PUT| See Restore body below |Trigger the restore procedure for the service.|
+|/backup|POST| See Backup below |Trigger the backup procedure for the service.|
+|/backup/{UUID}|GET| - |Returns the status of the requested backup job.|
+|/backup|DELETE| See Job deletion body below |Removes a result of a backup job.|
+|/restore|PUT| See Restore below |Trigger the restore procedure for the service.|
+|/restore/{UUID}|GET| - |Returns the status of the requested restore job.|
+|/restore|DELETE| See Job deletion body below |Removes a result of a restore job.|
 
-#### Backup body ####
+Following status codes can be expected for multiple endpoints:
+
+### Backup ###
+
+The backup functionality consists of three calls: Triggering a backup, requesting its status and removing the job from the agent.
+
+#### Trigger Backup ####
+This call triggers an asynchronous backup procedure. 
+
+Endpoint: POST /backup
+
+##### Status Codes and their meaning ####
+The backup agent intentionally returns the following status codes. Codes that differ are likely to be unexpected and not intended to be returned.
+
+| Code | Body | Description |
+| --- | --- | --- |
+| 201 | - | A backup was triggered and is getting run asynchronously. |
+| 400| See Polling Body| The information in the body are not sufficient. |
+| 401| See Simple response body rigth below| The provided credentials are not correct. |
+| 409 | See Polling Body| There already exists a job with the given UUID.|
+
+#### Polling Backup Status ####
+This call request the status of the dedicated job identified by the given UUID.
+
+Endpoint: GET /backup/{UUID}
+
+##### Status Codes and their meaning #####
+The backup agent intentionally returns the following status codes. Codes that differ are likely to be unexpected and not intended to be returned.
+| Code | Body | Description |
+| --- | --- | --- |
+| 200 | See Polling Body | A matching job was found and its status is returned. |
+| 400| - | No valid UUID was provided. |
+| 401| See Simple response body| The provided credentials are not correct. |
+| 404 | - | There exists no job for the given UUID.|
+
+
+#### Backup Job Deletion ####
+This call requests the deletion of a result of a backup job. This should be done to either use the UUID again or free the space for the agent.
+
+Endpoint: DELETE /backup
+
+##### Status Codes and their meaning #####
+The backup agent intentionally returns the following status codes. Codes that differ are likely to be unexpected and not intended to be returned.
+| Code | Body | Description |
+| --- | --- | --- |
+| 200 | - | A matching job was found and deleted. |
+| 400| - | The information in the body are not sufficient. |
+| 401| See Simple response body| The provided credentials are not correct. |
+| 410 | - | No matching job was found.|
+
+
+
+
+
+
+### Restore ###
+The restore functionality consists of three calls: Triggering a backup, requesting its status and removing the job from the agent.
+
+#### Trigger Restore ####
+This call triggers an asynchronous restore procedure. 
+
+Endpoint: PUT /restore
+
+
+##### Response Codes and their meaning #####
+See Trigger Backup Status Codes and their meaning
+
+
+#### Polling Restore Status ####
+This call request the status of the dedicated job identified by the given UUID.
+
+Endpoint: GET /restore/{UUID}
+
+##### Status Codes and their meaning #####
+See Backup Polling Status Codes and their meaning
+
+
+#### Restore Job Deletion ####
+This call requests the deletion of a result of a backup job. This should be done to either use the UUID again or free the space for the agent.
+
+Endpoint: DELETE /restore
+
+##### Status Codes and their meaning #####
+See Backup Job Deletion Status Codes and their meaning
+
+
+## Request Bodies ##
+
+### Trigger Backup Body ###
 ```json
 {
     "UUID" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
@@ -57,7 +148,8 @@ The agent supports three http endpoints for status, backup and restore. The endp
 ```
 Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the scripts to work with.
 
-#### Restore body ####
+
+### Trigger Restore Body ###
 ```json
 {
     "UUID" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
@@ -83,6 +175,79 @@ Please note that objects in the parameters object can not have nested objects, a
 ```
 Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the shell scripts to work with.
 
+### Job Deletion Body ###
+
+```json
+{
+	"UUID" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1"
+}
+```
+
+## Response Bodies ##
+
+
+### Simple Response Body ###
+```json
+{
+    "message" : "simple response message"
+}
+```
+
+### Backup Polling Body ###
+Please not that the ``error_message`` field will not show up in the json, if it is empty.
+
+```json
+{
+    "status": "SUCCESS",
+    "message": "backup successfully carried out",
+    "state": "finished",
+    "error_message": "contains message dedicated to the occuring error, will not show up if empty",
+    "region": "S3 region",
+    "bucket": "S3 bucket",
+    "filename": "host_YYYY_MM_DD_database.tar.gz",
+    "filesize": {
+        "size": 42,
+        "unit": "byte"
+    },
+    "start_time": "YYYY-MM-DDTHH:MM:SS+00:00",
+    "end_time": "YYYY-MM-DDTHH:MM:SS+00:00",
+    "execution_time_ms": 42000,
+    "pre_backup_lock_log": "stdout of the dedicated script",
+    "pre_backup_lock_errorlog": "stderr of the dedicated script",
+    "pre_backup_check_log": "stdout of the dedicated script",
+    "pre_backup_check_errorlog": "stderr of the dedicated script",
+    "backup_log": "stdout of the dedicated script",
+    "backup_errorlog": "stderr of the dedicated script",
+    "backup_cleanup_log": "stdout of the dedicated script",
+    "backup_cleanup_errorlog": "stderr of the dedicated script",
+    "post_backup_unlock_log": "stdout of the dedicated script",
+    "post_backup_unlock_errorlog": "stderr of the dedicated script"
+}
+```
+
+### Restore Polling Body ###
+Please not that the ``error_message`` field will not show up in the json, if it is empty.
+
+```json
+{
+    "status": "SUCCESS",
+    "message": "restore successfully carried out",
+    "state": "finished",
+    "error_message": "contains message dedicated to the occuring error, will not show up if empty",
+    "start_time": "YYYY-MM-DDTHH:MM:SS+00:00",
+    "end_time": "YYYY-MM-DDTHH:MM:SS+00:00",
+    "execution_time_ms": 42000,
+    "pre_restore_lock_log": "stdout of the dedicated script",
+    "pre_restore_lock_errorlog": "stderr of the dedicated script",
+    "restore_log": "stdout of the dedicated script",
+    "restore_errorlog": "stderr of the dedicated script",
+    "restore_cleanup_log": "stdout of the dedicated script",
+    "restore_cleanup_errorlog": "stderr of the dedicated script",
+    "post_restore_unlock_log": "stdout of the dedicated script",
+    "post_restore_unlock_errorlog": "stderr of the dedicated script"
+}
+```
+
 ## Functionality ##
 The agent calls a predefined set of shell scripts in order to trigger the backup or restore procedure. Generally speaking there are three stages: Pre, Action, Post. 
 These files have to be located or will be placed in the respective directories set by the environment variables.
@@ -107,4 +272,4 @@ The agent runs following shell scripts from top to bottom:
 In the restore stage, before the dedicated script starts the actual restore, the agent downloads the backed up restore file from the cloud storage, using the given information and credentials, and puts it in the dedicated directory.
 
 ## Version ##
-v0.2
+--
