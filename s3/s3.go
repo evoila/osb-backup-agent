@@ -27,7 +27,7 @@ func SetUpS3() {
 func getSession(region, authkey, authSecret string) (*session.Session, error) {
 	sessionMutex.Acquire()
 
-	// -- Creating session, service client and uploader --
+	// Setting credentials of this request
 	os.Setenv("AWS_ACCESS_KEY_ID", authkey)
 	os.Setenv("AWS_SECRET_ACCESS_KEY", authSecret)
 
@@ -55,10 +55,11 @@ func UploadFile(filename, path string, body httpBodies.BackupBody) error {
 	defer file.Close()
 	log.Println("Successfully opened file at", path)
 
+	// -- Creating S3 session and uploader --
 	sess, err := getSession(body.Destination.Region, body.Destination.AuthKey, body.Destination.AuthSecret)
 
 	if err != nil {
-		return errorlog.LogError("Unable to create a S3 session due to due to '", err.Error(), "'")
+		return errorlog.LogError("Unable to create a S3 session due to '", err.Error(), "'")
 	}
 	log.Println("Successfully created S3 session")
 
