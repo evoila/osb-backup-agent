@@ -12,6 +12,7 @@ import (
 	"github.com/evoila/osb-backup-agent/health"
 	"github.com/evoila/osb-backup-agent/jobs"
 	"github.com/evoila/osb-backup-agent/restore"
+	"github.com/evoila/osb-backup-agent/s3"
 	"github.com/gorilla/mux"
 )
 
@@ -30,6 +31,7 @@ func StartWebAgent() {
 	}
 	var portAsString = strings.Join([]string{":", strconv.Itoa(port)}, "")
 	jobs.SetUpJobStructure()
+	s3.SetUpS3()
 	log.Println("Successfully prepared the web client")
 
 	log.Println("Starting and running web client on port", GetUsedPort())
