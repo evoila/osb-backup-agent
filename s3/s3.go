@@ -23,7 +23,7 @@ func SetUpS3() {
 
 // getSession creates a AWS S3 session with the provided credentials.
 // The ENV VARs are set and cleared in this method.
-// A mutex regulates access to the credentials and garanties the creation of the session with the correct credentials.
+// A mutex regulates access to the credentials and ensures the creation of the session with the correct credentials.
 func getSession(region, authkey, authSecret string) (*session.Session, error) {
 	sessionMutex.Acquire()
 
@@ -141,9 +141,6 @@ func listObjectsOfBucket(bucket string, client *s3.S3) error {
 }
 
 func listAllBuckets(client *s3.S3) error {
-	// -- Listing all buckets --
-	// Could be removed later on
-
 	log.Println("Sending request for the bucket list.")
 	result, err := client.ListBuckets(nil)
 	if err != nil {
