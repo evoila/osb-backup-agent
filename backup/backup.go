@@ -180,7 +180,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.PreBackupLockLog, response.PreBackupLockErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupLock, envParameters)
+		status, response.PreBackupLockLog, response.PreBackupLockErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupLock, envParameters, body.Backup.Database)
 		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
@@ -189,7 +189,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.PreBackupCheckLog, response.PreBackupCheckErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupCheck, envParameters)
+		status, response.PreBackupCheckLog, response.PreBackupCheckErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupCheck, envParameters, body.Backup.Database)
 		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
@@ -224,7 +224,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.BackupCleanupLog, response.BackupCleanupErrorLog, err = shell.ExecuteScriptForStage(NameBackupCleanup, envParameters)
+		status, response.BackupCleanupLog, response.BackupCleanupErrorLog, err = shell.ExecuteScriptForStage(NameBackupCleanup, envParameters, body.Backup.Database)
 		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
@@ -233,7 +233,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.PostBackupUnlockLog, response.PostBackupUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostBackupUnlock, envParameters)
+		status, response.PostBackupUnlockLog, response.PostBackupUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostBackupUnlock, envParameters, body.Backup.Database)
 		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
