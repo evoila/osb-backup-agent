@@ -15,6 +15,7 @@ import (
 	"github.com/evoila/osb-backup-agent/s3"
 	"github.com/evoila/osb-backup-agent/security"
 	"github.com/evoila/osb-backup-agent/shell"
+	"github.com/evoila/osb-backup-agent/swift"
 	"github.com/evoila/osb-backup-agent/timeutil"
 	"github.com/evoila/osb-backup-agent/utils"
 	"github.com/gorilla/mux"
@@ -94,6 +95,10 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 		// No job exists yet -> create new one
 		log.Println("Job does not exist yet -> creating a new one.")
 
+		if !utils.IsSupportedType(w, r, body.Destination, "Restore") {
+			return
+		}
+
 		missingFields := !httpBodies.CheckForMissingFieldsInRestoreBody(body)
 		if missingFields {
 			err = errors.New("body is missing essential fields")
@@ -121,7 +126,7 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Starting new go routine to handle the backup request
+		// Starting new go routine to handle the restore request
 		log.Println("Starting new go routine to handle restore request for", body.Id)
 		go Restore(body, job)
 
@@ -139,6 +144,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 	response, _ := jobs.GetRestoreJob(body.Id)
 	response.Message = "restore is running"
 	response.Status = httpBodies.Status_running
+	response.Type = body.Destination.Type
 	jobs.UpdateRestoreJob(body.Id, response)
 
 	// Set up variables for filling response bodies later on
@@ -172,10 +178,20 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 		log.Println("> Starting", response.State, "stage.")
 
 		if body.Destination.Type == "S3" {
-			err = downloadFromS3(body)
+			err = download(body, body.Destination.Type)
 			if err != nil {
 				status = false
 				log.Println("[ERROR] Downloading from S3 failed due to '", err.Error(), "'")
+			} else {
+				status, response.RestoreLog, response.RestoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
+					body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.Filename)
+				jobs.UpdateRestoreJob(body.Id, response)
+			}
+		} else if body.Destination.Type == "SWIFT" {
+			err = download(body, body.Destination.Type)
+			if err != nil {
+				status = false
+				log.Println("[ERROR] Downloading from swift failed due to '", err.Error(), "'")
 			} else {
 				status, response.RestoreLog, response.RestoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
 					body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.Filename)
@@ -247,9 +263,10 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 
 }
 
-func downloadFromS3(body httpBodies.RestoreBody) error {
+func download(body httpBodies.RestoreBody, downloadType string) error {
 	var restoreDirectory = configuration.GetRestoreDirectory()
 	var path = errorlog.Concat([]string{restoreDirectory, "/", body.Destination.Filename}, "")
+	var err error
 	if shell.CheckForExistingFile(restoreDirectory, body.Destination.Filename) {
 		if configuration.IsAllowedToDeleteFiles() {
 			log.Println("Removing already existing file:", path)
@@ -264,7 +281,13 @@ func downloadFromS3(body httpBodies.RestoreBody) error {
 	}
 	log.Println("Using file at", path)
 
-	err := s3.DownloadFile(body.Destination.Filename, path, body)
+	if downloadType == "S3" {
+		log.Println("Using S3 as destination.")
+		err = s3.DownloadFile(body.Destination.Filename, path, body)
+	} else {
+		log.Println("Using swift as destination.")
+		err = swift.DownloadFile(body.Destination.Filename, path, body)
+	}
 
 	return err
 }

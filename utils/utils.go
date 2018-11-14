@@ -9,6 +9,8 @@ import (
 	"github.com/evoila/osb-backup-agent/httpBodies"
 )
 
+var supportedTypes = []string{"S3", "SWIFT"}
+
 func UnmarshallIntoBackupBody(w http.ResponseWriter, r *http.Request) (httpBodies.BackupBody, error) {
 	decoder := json.NewDecoder(r.Body)
 	var body httpBodies.BackupBody
@@ -75,6 +77,29 @@ func IsIdEmptyInRestoreBodyWithResponse(w http.ResponseWriter, r *http.Request, 
 		w.WriteHeader(400)
 		json.NewEncoder(w).Encode(response)
 		return true
+	}
+	return false
+}
+
+func IsSupportedType(w http.ResponseWriter, r *http.Request, body httpBodies.DestinationInformation, action string) bool {
+	if !contains(supportedTypes, body.Type) {
+		err := errorlog.LogError(action, " failed during body deserialization due to '", "type not supported", "'")
+		var response = httpBodies.RestoreResponse{Status: httpBodies.Status_failed, Message: action + " failed.", State: "Body Deserialization", ErrorMessage: err.Error(),
+			StartTime: "", EndTime: "", ExecutionTime: 0,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(response)
+		return false
+	}
+	return true
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
 	}
 	return false
 }

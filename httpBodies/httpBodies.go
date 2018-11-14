@@ -16,8 +16,13 @@ type BackupResponse struct {
 	Message                  string   `json:"message"`
 	State                    string   `json:"state"`
 	ErrorMessage             string   `json:"error_message,omitempty"`
-	Region                   string   `json:"region"`
-	Bucket                   string   `json:"bucket"`
+	Type                     string   `json:"type"`
+	Region                   string   `json:"region,omitempty"`
+	Bucket                   string   `json:"bucket,omitempty"`
+	AuthUrl                  string   `json:"authUrl,omitempty"`
+	Domain                   string   `json:"domain,omitempty"`
+	ContainerName            string   `json:"container_name,omitempty"`
+	ProjectName              string   `json:"project_name,omitempty"`
 	FileName                 string   `json:"filename"`
 	FileSize                 FileSize `json:"filesize"`
 	StartTime                string   `json:"start_time"`
@@ -45,6 +50,7 @@ type RestoreResponse struct {
 	Message                   string `json:"message"`
 	State                     string `json:"state"`
 	ErrorMessage              string `json:"error_message,omitempty"`
+	Type                      string `json:"type"`
 	StartTime                 string `json:"start_time"`
 	EndTime                   string `json:"end_time"`
 	ExecutionTime             int64  `json:"execution_time_ms"`
@@ -83,6 +89,13 @@ type DestinationInformation struct {
 	AuthKey    string
 	AuthSecret string
 	Filename   string
+
+	AuthUrl        string
+	Domain         string
+	Container_name string
+	Project_name   string
+	Username       string
+	Password       string
 }
 
 type DbInformation struct {
@@ -94,6 +107,9 @@ type DbInformation struct {
 }
 
 func PrintOutBackupBody(body BackupBody) {
+	authSecret := GetRedactedOrEmptyPasswordString(body.Destination.AuthSecret)
+	swiftPassword := GetRedactedOrEmptyPasswordString(body.Destination.Password)
+	dbPassword := GetRedactedOrEmptyPasswordString(body.Backup.Password)
 
 	log.Println("Backup Request Body: {\n",
 		errorlog.Concat([]string{"    \"id\" : ", body.Id, "\",\n"}, ""),
@@ -102,17 +118,25 @@ func PrintOutBackupBody(body BackupBody) {
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"region\" : \"", body.Destination.Region, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authKey\" : \"", body.Destination.AuthKey, "\",\n"}, ""),
-		"        \"authSecret\" : <redacted>\n",
+		errorlog.Concat([]string{"        \"authSecret\" : \"", authSecret, "\",\n"}, ""),
+		"\n",
+		errorlog.Concat([]string{"        \"authUrl\" : \"", body.Destination.AuthUrl, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"domain\" : \"", body.Destination.Domain, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"container_name\" : \"", body.Destination.Container_name, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"project_name\" : \"", body.Destination.Project_name, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"username\" : \"", body.Destination.Username, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"password\" : \"", swiftPassword, "\",\n"}, ""),
 		"    },\n",
 		"    \"backup\" : {\n",
 		errorlog.Concat([]string{"        \"host\" : \"", body.Backup.Host, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"user\" : \"", body.Backup.Username, "\",\n"}, ""),
-		"        \"password\" : <redacted>\n",
+		errorlog.Concat([]string{"        \"password\" : \"", dbPassword, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"database\" : \"", body.Backup.Database, "\",\n"}, ""),
 		"        \"parameters\" : ",
 		getParametersAsLogStringSlice(body.Backup.Parameters),
 		"    }\n",
 		"}")
+
 }
 
 // Returns true if no fields are missing
@@ -126,7 +150,15 @@ func CheckForMissingFieldsInBackupBody(body BackupBody) bool {
 }
 
 func CheckForMissingFieldDestinationInformation(body DestinationInformation, fileCanBeMissing bool) bool {
-	return body.AuthKey != "" && body.AuthSecret != "" && body.Bucket != "" && (body.Filename != "" || fileCanBeMissing) && body.Region != "" && body.Type != ""
+	if body.Type == "S3" {
+		return body.AuthKey != "" && body.AuthSecret != "" && body.Bucket != "" && (body.Filename != "" || fileCanBeMissing) && body.Region != ""
+	} else if body.Type == "swift" {
+		return body.AuthUrl != "" && body.Domain != "" && body.Container_name != "" && body.Project_name != "" && body.Username != "" && body.Password != "" && (body.Filename != "" || fileCanBeMissing)
+	} else if body.Type == "" {
+		return false
+	}
+	// if type is not empty but not supported, a later check will take care of the error handling
+	return true
 }
 
 func CheckForMissingFieldsInDbInformation(body DbInformation) bool {
@@ -134,6 +166,9 @@ func CheckForMissingFieldsInDbInformation(body DbInformation) bool {
 }
 
 func PrintOutRestoreBody(body RestoreBody) {
+	authSecret := GetRedactedOrEmptyPasswordString(body.Destination.AuthSecret)
+	swiftPassword := GetRedactedOrEmptyPasswordString(body.Destination.Password)
+	dbPassword := GetRedactedOrEmptyPasswordString(body.Restore.Password)
 
 	log.Println("Restore Request Body: {\n",
 		errorlog.Concat([]string{"    \"id\" : ", body.Id, "\",\n"}, ""),
@@ -142,13 +177,20 @@ func PrintOutRestoreBody(body RestoreBody) {
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"region\" : \"", body.Destination.Region, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authKey\" : \"", body.Destination.AuthKey, "\",\n"}, ""),
-		"        \"authSecret\" : <redacted>\n",
+		errorlog.Concat([]string{"        \"authSecret\" : \"", authSecret, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"filename\" : \"", body.Destination.Filename, "\",\n"}, ""),
+		"\n",
+		errorlog.Concat([]string{"        \"authUrl\" : \"", body.Destination.AuthUrl, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"domain\" : \"", body.Destination.Domain, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"container_name\" : \"", body.Destination.Container_name, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"project_name\" : \"", body.Destination.Project_name, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"username\" : \"", body.Destination.Username, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"password\" : \"", swiftPassword, "\",\n"}, ""),
 		"    },\n",
 		"    \"backup\" : {\n",
 		errorlog.Concat([]string{"        \"host\" : \"", body.Restore.Host, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"user\" : \"", body.Restore.Username, "\",\n"}, ""),
-		"        \"password\" : <redacted>\n",
+		errorlog.Concat([]string{"        \"password\" : \"", dbPassword, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"database\" : \"", body.Restore.Database, "\",\n"}, ""),
 		"        \"parameters\" : ",
 		getParametersAsLogStringSlice(body.Restore.Parameters),
@@ -183,4 +225,11 @@ func GetParametersAsEnvVarStringSlice(parameters []map[string]interface{}) (envP
 		}
 	}
 	return
+}
+
+func GetRedactedOrEmptyPasswordString(pw string) string {
+	if pw != "" {
+		return "<redacted>"
+	}
+	return ""
 }
