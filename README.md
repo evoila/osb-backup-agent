@@ -2,7 +2,7 @@
 
 This project holds a small go web agent for backup and restore actions for bosh, but does not contain any logic for specific services or applications. The agent simply allows to trigger scripts in a predefined directory and uploads or downloads from a cloud storage.
 
-Currently implemented cloud storages: **S3**
+Currently implemented cloud storages: **S3**, **SWIFT**
 
 ## Installation ##
 Download this repository and then get its dependencies via ```glide update```.
@@ -124,15 +124,24 @@ See Backup Job Deletion Status Codes and their meaning
 ## Request Bodies ##
 
 ### Trigger Backup Body ###
+Fields that are not dedicated to the chosen type will be ignored.
 ```json
 {
     "id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
     "destination" : {
-        "type": "S3",
+        "type": "S3 / SWIFT",
+
         "bucket": "bucketName",
         "region": "regionName",
         "authKey": "key",
-        "authSecret": "secret"
+        "authSecret": "secret",
+
+        "authUrl" : "auth url",
+        "domain" : "domain name",
+        "container_name" : "name of the container",
+        "project_name" : "name of the project == tenant",
+        "username" : "swift username",
+        "password" : "swift API key"
     },
     "backup" : {
         "host": "host",
@@ -154,12 +163,20 @@ Please note that objects in the parameters object can not have nested objects, a
 {
     "id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
     "destination" : {
-        "type": "S3",
+        "type": "S3 / SWIFT",
+        "filename": "filename",
+
         "bucket": "bucketName",
         "region": "regionName",
         "authKey": "key",
         "authSecret": "secret",
-        "filename": "filename"
+        
+        "authUrl" : "auth url",
+        "domain" : "domain name ",
+        "container_name" : "name of the container",
+        "project_name" : "name of the project == tenant",
+        "username" : "swift username",
+        "password" : "swift API key"
     },
     "restore" : {
         "host": "host",
@@ -194,7 +211,7 @@ Please note that objects in the parameters object can not have nested objects, a
 ```
 
 ### Backup Polling Body ###
-Please not that the ``error_message`` field will not show up in the json, if it is empty.
+Please not that the ``error_message`` field will not show up in the json, if it is empty. Same goes for fields that are dedicated to a specific backup destination type, which will be ignored if empty.
 
 ```json
 {
@@ -202,8 +219,15 @@ Please not that the ``error_message`` field will not show up in the json, if it 
     "message": "backup successfully carried out",
     "state": "finished / name of the current phase",
     "error_message": "contains message dedicated to the occuring error, will not show up if empty",
+
     "region": "S3 region",
     "bucket": "S3 bucket",
+
+    "authUrl": "auth url",
+    "domain": "domain name",
+    "container_name": "name of the container",
+    "project_name": "name of the project",
+
     "filename": "host_YYYY_MM_DD_database.tar.gz",
     "filesize": {
         "size": 42,
@@ -272,4 +296,4 @@ The agent runs following shell scripts from top to bottom:
 In the restore stage, before the dedicated script starts the actual restore, the agent downloads the backed up restore file from the cloud storage, using the given information and credentials, and puts it in the dedicated directory.
 
 ## Version ##
---
+See git tags.
