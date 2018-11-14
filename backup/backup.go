@@ -15,6 +15,7 @@ import (
 	"github.com/evoila/osb-backup-agent/s3"
 	"github.com/evoila/osb-backup-agent/security"
 	"github.com/evoila/osb-backup-agent/shell"
+	"github.com/evoila/osb-backup-agent/swift"
 	"github.com/evoila/osb-backup-agent/timeutil"
 	"github.com/evoila/osb-backup-agent/utils"
 	"github.com/gorilla/mux"
@@ -96,7 +97,6 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if utils.IsIdEmptyInBackupBodyWithResponse(w, r, body) {
-
 		return
 	}
 
@@ -109,6 +109,10 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// No job exists yet -> create new one
 		log.Println("Job does not exist yet -> creating a new one.")
+
+		if !utils.IsSupportedType(w, r, body.Destination, "Backup") {
+			return
+		}
 
 		missingFields := !httpBodies.CheckForMissingFieldsInBackupBody(body)
 		if missingFields {
@@ -153,9 +157,15 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 
 	response, _ := jobs.GetBackupJob(body.Id)
 	response.Message = "backup is running"
+	response.Type = body.Destination.Type
 	response.Status = httpBodies.Status_running
 	response.Bucket = body.Destination.Bucket
 	response.Region = body.Destination.Region
+	response.AuthUrl = body.Destination.AuthUrl
+	response.Domain = body.Destination.Domain
+	response.ContainerName = body.Destination.Container_name
+	response.ProjectName = body.Destination.Project_name
+
 	jobs.UpdateBackupJob(body.Id, response)
 
 	// Set up variables for filling response bodies later on
@@ -203,15 +213,23 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, path)
 		jobs.UpdateBackupJob(body.Id, response)
 		if err == nil {
-
 			if body.Destination.Type == "S3" {
-				response.FileName, fileSize, err = uploadToS3(body)
+				response.FileName, fileSize, err = upload(body, body.Destination.Type)
 				if err != nil {
 					status = false
 					log.Println("[ERROR] Uploading to S3 failed due to '", err.Error(), "'")
 				}
 				response.FileSize = httpBodies.FileSize{Size: fileSize, Unit: "byte"}
 				jobs.UpdateBackupJob(body.Id, response)
+			} else if body.Destination.Type == "SWIFT" {
+				response.FileName, fileSize, err = upload(body, body.Destination.Type)
+				if err != nil {
+					status = false
+					log.Println("[ERROR] Uploading to swift failed due to '", err.Error(), "'")
+				}
+				response.FileSize = httpBodies.FileSize{Size: fileSize, Unit: "byte"}
+				jobs.UpdateBackupJob(body.Id, response)
+
 			} else {
 				status = false
 				err = errors.New("type is not supported")
@@ -264,10 +282,10 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		errorlog.LogError("Backup failed due to '", errorMessage, "'")
 
 		response.Status = httpBodies.Status_failed
-		response.Message = "restore failed"
+		response.Message = "backup failed"
 		response.ErrorMessage = errorMessage
 
-		log.Println("Restore incompletely carried out")
+		log.Println("Backup incompletely carried out")
 
 		log.Println("Updating backup job", body.Id, "with an error response.")
 		jobs.UpdateBackupJob(body.Id, response)
@@ -277,7 +295,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 	return response
 }
 
-func uploadToS3(body httpBodies.BackupBody) (string, int64, error) {
+func upload(body httpBodies.BackupBody, uploadType string) (string, int64, error) {
 	var fileName = GetBackupFilename(body.Backup.Host, body.Backup.Database)
 	var backupDirectory = configuration.GetBackupDirectory()
 	var path = GetBackupPath(body.Backup.Host, body.Backup.Database)
@@ -289,7 +307,14 @@ func uploadToS3(body httpBodies.BackupBody) (string, int64, error) {
 	if err != nil {
 		return fileName, 0, errorlog.LogError("Reading file size failed due to '", err.Error(), "'")
 	}
-	err = s3.UploadFile(fileName, path, body)
+
+	if uploadType == "S3" {
+		log.Println("Using S3 as destination.")
+		err = s3.UploadFile(fileName, path, body)
+	} else {
+		log.Println("Using swift as destination.")
+		err = swift.UploadFile(fileName, path, body)
+	}
 
 	return fileName, size, err
 }
