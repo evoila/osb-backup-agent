@@ -114,12 +114,17 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if !utils.IsAllowedToSpawnNewJob(w, r) {
+			return
+		}
+
 		job, err := jobs.AddNewRestoreJob(body.Id)
 		if err != nil {
 			errorlog.LogError("Creating a new job failed due to '", err.Error(), "'")
 			var response = httpBodies.RestoreResponse{Status: httpBodies.Status_failed, Message: "Restore failed.", State: "Job creation", ErrorMessage: err.Error(),
 				StartTime: "", EndTime: "", ExecutionTime: 0,
 			}
+			jobs.DecreaseCurrentJobCount()
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(409)
 			json.NewEncoder(w).Encode(response)
@@ -259,6 +264,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 		jobs.UpdateRestoreJob(body.Id, response)
 	}
 	log.Println("Finished restore for", body.Id)
+	jobs.DecreaseCurrentJobCount()
 	return response
 
 }

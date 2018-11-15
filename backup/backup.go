@@ -128,12 +128,17 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if !utils.IsAllowedToSpawnNewJob(w, r) {
+			return
+		}
+
 		job, err := jobs.AddNewBackupJob(body.Id)
 		if err != nil {
 			errorlog.LogError("Creating a new job failed due to '", err.Error(), "'")
 			var response = httpBodies.BackupResponse{Status: httpBodies.Status_failed, Message: "Backup failed.", State: "Job creation", ErrorMessage: err.Error(),
 				StartTime: "", EndTime: "", ExecutionTime: 0,
 			}
+			jobs.DecreaseCurrentJobCount()
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(409)
 			json.NewEncoder(w).Encode(response)
@@ -292,6 +297,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 
 	}
 	log.Println("Finished backup for", body.Id)
+	jobs.DecreaseCurrentJobCount()
 	return response
 }
 

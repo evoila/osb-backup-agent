@@ -19,7 +19,8 @@ The agent uses environment variables to configurate its parameters.
 | directory_backup | /tmp/backups | The directory in which the agent looks for files to upload to the cloud storage. |
 | directory_restore | /tmp/restores | The directory in which the agent will put the downloaded restore file from the cloud storage. |
 | scrips_path | /tmp/scrips | The directory in which the agent will look for the backup scrips. Defaults to `/var/vcap/jobs/backup-agent/backup`  |
-| allowed_to_delete_files | true | Flag for permission to delete already existing files. Defaults to `false` | 
+| allowed_to_delete_files | true | Flag for permission to delete already existing files. Defaults to `false`. | 
+| max_job_number | 10 | Maximum number of running jobs at a time. Defaults to 10. |
 
 
 ## Endpoints ##
@@ -53,8 +54,9 @@ The backup agent intentionally returns the following status codes. Codes that di
 | --- | --- | --- |
 | 201 | - | A backup was triggered and is getting run asynchronously. |
 | 400| See Polling Body| The information in the body are not sufficient. |
-| 401| See Simple response body rigth below| The provided credentials are not correct. |
+| 401| See Simple Response Bbody | The provided credentials are not correct. |
 | 409 | See Polling Body| There already exists a job with the given id.|
+| 429 | See Error Message Response Body| Not allowed to spawn a new job, because it would break the maximum job limit.|
 
 #### Polling Backup Status ####
 This call request the status of the dedicated job identified by the given id.
@@ -207,6 +209,15 @@ Please note that objects in the parameters object can not have nested objects, a
 ```json
 {
     "message" : "simple response message"
+}
+```
+
+### Error Message Response Body ###
+```json
+{
+    "message": "descriptive message",
+    "state": "state during error occurrence",
+    "error_message": "message describing the occurred error"
 }
 ```
 

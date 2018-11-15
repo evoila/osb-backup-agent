@@ -7,6 +7,7 @@ import (
 
 	"github.com/evoila/osb-backup-agent/errorlog"
 	"github.com/evoila/osb-backup-agent/httpBodies"
+	"github.com/evoila/osb-backup-agent/jobs"
 )
 
 var supportedTypes = []string{"S3", "SWIFT"}
@@ -79,6 +80,17 @@ func IsIdEmptyInRestoreBodyWithResponse(w http.ResponseWriter, r *http.Request, 
 		return true
 	}
 	return false
+}
+
+func IsAllowedToSpawnNewJob(w http.ResponseWriter, r *http.Request) bool {
+	if !jobs.IncreaseCurrentJobCountWithCheck() {
+		var response = httpBodies.ErrorResponse{Message: "Failed to start a new job.", ErrorMessage: "Spawing a new job would break the allowed running job limit.", State: "Job reservation"}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(429)
+		json.NewEncoder(w).Encode(response)
+		return false
+	}
+	return true
 }
 
 func IsSupportedType(w http.ResponseWriter, r *http.Request, body httpBodies.DestinationInformation, action string) bool {

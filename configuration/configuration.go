@@ -47,6 +47,16 @@ func IsAllowedToDeleteFiles() bool {
 	return value
 }
 
+func GetMaxJobNumber() int {
+	stringedValue := getStringEnvVariableWithDefault("max_job_number", "10")
+	value := parseInt(stringedValue)
+	if value < 1 {
+		log.Println("[ERROR]", "Could not parse '", stringedValue, "' or the value is smaller than 1 -> setting to default '10'")
+		value = 10
+	}
+	return value
+}
+
 func getStringEnvVariable(variable string) string {
 	var output = os.Getenv(variable)
 	if output == "" {

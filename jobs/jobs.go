@@ -3,10 +3,14 @@ package jobs
 import (
 	"log"
 
+	"github.com/evoila/osb-backup-agent/configuration"
 	"github.com/evoila/osb-backup-agent/errorlog"
 	"github.com/evoila/osb-backup-agent/httpBodies"
 	"github.com/evoila/osb-backup-agent/mutex"
 )
+
+var currentJobCount int
+var jobCountMutex mutex.Mutex
 
 var backupJobs map[string]*httpBodies.BackupResponse
 var backupMutex mutex.Mutex
@@ -15,12 +19,38 @@ var restoreJobs map[string]*httpBodies.RestoreResponse
 var restoreMutex mutex.Mutex
 
 func SetUpJobStructure() {
+	currentJobCount = 0
 	backupJobs = make(map[string]*httpBodies.BackupResponse)
 	restoreJobs = make(map[string]*httpBodies.RestoreResponse)
+	jobCountMutex = make(mutex.Mutex, 1)
 	backupMutex = make(mutex.Mutex, 1)
 	restoreMutex = make(mutex.Mutex, 1)
+	jobCountMutex.Release()
 	backupMutex.Release()
 	restoreMutex.Release()
+}
+
+func IncreaseCurrentJobCountWithCheck() bool {
+	log.Println("Accessing job number mutex to increase job count.")
+	jobCountMutex.Acquire()
+	isAllowedToStart := currentJobCount < configuration.GetMaxJobNumber()
+	if isAllowedToStart {
+		log.Println("Current job count is", currentJobCount, "-> reserving a spot")
+		currentJobCount++
+	} else {
+		log.Println("Current job count is", currentJobCount, "-> not allowed to reserve a spot")
+	}
+	log.Println("Unlocking job number mutex after increasing job count.")
+	jobCountMutex.Release()
+	return isAllowedToStart
+}
+
+func DecreaseCurrentJobCount() {
+	log.Println("Accessing job number mutex to decrease job count.")
+	jobCountMutex.Acquire()
+	currentJobCount--
+	log.Println("Unlocking job number mutex after decreasing job count to", currentJobCount)
+	jobCountMutex.Release()
 }
 
 func GetBackupJob(UUID string) (*httpBodies.BackupResponse, bool) {
