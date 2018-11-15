@@ -295,14 +295,16 @@ The agent runs following shell scripts from top to bottom:
 - `backup-cleanup`
 - `post-backup-unlock`
 
-In the backup stage, after the script generated the file to upload (name consists of `<host>_YYYY_MM_DD_<dbname>.tar.gz`), the agent uploads the backup file from the set directory to the cloud storage using the given information and credentials.
+In the backup stage, the agent generates a name (consists of `YYYY_MM_DD_HH_MM_<host>_<dbname>`) for the backup file and forwards its path (`backup_directory/job_id/generated_file_name`) to the back script. After the script generated the file to upload, the agent uploads the first encountered file in the dedicated directory (`backup_directory/job_id`) to the cloud storage using the given information and credentials.
 
 ##### Script Parameters #####
 - `pre-backup-lock databasename`
 - `pre-backup-check databasename`
-- `backup host username password databasename path_for_backup_file job_d compression_flag encryption_key`
+- `backup host username password databasename path_for_backup_file_without_type job_d compression_flag encryption_key`
 - `backup-cleanup databasename job_id`
 - `post-backup-unlock databasename`
+
+The path_for_backup_file_without_type parameter consists of the backup_directory_path/job_id/generated_file_name. The backup_directory_path is set via ENV VAR, the job_id determined by the executing job and the generated_file_name is
 
 #### Restore ####
 The agent runs following shell scripts from top to bottom:
@@ -310,6 +312,8 @@ The agent runs following shell scripts from top to bottom:
 - `restore`
 - `restore-cleanup`
 - `post-restore-unlock`
+
+In the restore stage, the agent dowloads a file with the given file name (out of the request body) from the used cloud storage to the dedicated directory (`restore_direcotry/job_id/`)
 
 ##### Script Parameters #####
 - `pre-restore-lock`

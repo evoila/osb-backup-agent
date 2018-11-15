@@ -258,8 +258,8 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 		log.Println("Updating restore job", body.Id, "with an error response.")
 		jobs.UpdateRestoreJob(body.Id, response)
 	}
-	log.Println("Finished restore for", body.Id)
 	jobs.DecreaseCurrentJobCount()
+	log.Println("Finished restore for", body.Id)
 	return response
 
 }

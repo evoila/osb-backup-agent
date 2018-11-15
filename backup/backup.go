@@ -215,7 +215,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		var path = GetBackupPath(body.Backup.Host, body.Backup.Database, body.Id)
+		var path = GetBackupFilePathWithoutFileType(body.Backup.Host, body.Backup.Database, body.Id)
 		status, response.BackupLog, response.BackupErrorLog, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
 			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, path, body.Id, strconv.FormatBool(body.Compression), body.Encryption_key)
 		jobs.UpdateBackupJob(body.Id, response)
@@ -297,18 +297,22 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 	}
-	log.Println("Finished backup for", body.Id)
 	jobs.DecreaseCurrentJobCount()
+	log.Println("Finished backup for", body.Id)
 	return response
 }
 
 func upload(body httpBodies.BackupBody, uploadType string) (string, int64, error) {
 	var fileName = GetBackupFilename(body.Backup.Host, body.Backup.Database)
 	var backupDirectory = configuration.GetBackupDirectory() + "/" + body.Id
-	var path = GetBackupPath(body.Backup.Host, body.Backup.Database, body.Id)
-	if !shell.CheckForExistingFile(backupDirectory, fileName) {
-		return "", 0, errorlog.LogError("File not found: ", path)
+
+	// Get the first file in the directory
+	fileName, err := shell.GetCompleteFileName(backupDirectory, "")
+	if err != nil {
+		return fileName, 0, errorlog.LogError("Getting path to backup file failed due to '", err.Error(), "'")
 	}
+
+	path := backupDirectory + "/" + fileName
 	log.Println("Using file at", path)
 	size, err := shell.GetFileSize(path)
 	if err != nil {
@@ -326,7 +330,8 @@ func upload(body httpBodies.BackupBody, uploadType string) (string, int64, error
 	return fileName, size, err
 }
 
-func GetBackupPath(host, database, jobId string) string {
+// GetBackupPathWithoutType returns a string holding the path to the backup file without file type.
+func GetBackupFilePathWithoutFileType(host, database, jobId string) string {
 	var backupDirectory = configuration.GetBackupDirectory()
 	var fileName = GetBackupFilename(host, database)
 	var path = errorlog.Concat([]string{backupDirectory, "/", jobId, "/", fileName}, "")
@@ -337,6 +342,5 @@ func GetBackupFilename(host, database string) string {
 	// using the UTC of the local machine!!!
 	currentTime := time.Now().UTC()
 	log.Printf("Getting filename by current UTC as is %v-%v-%02vT%02v:%02v:%02v+00:00\n", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second())
-	return fmt.Sprintf("%v_%v_%02v_%02v_%02v_%s_%s%s", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), host, database, ".tar.gz")
-	//	return fmt.Sprintf("%s_%v_%v_%02v_%s%s", host, currentTime.Year(), int(currentTime.Month()), currentTime.Day(), database, ".tar.gz")
+	return fmt.Sprintf("%v_%v_%02v_%02v_%02v_%s_%s", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), host, database)
 }

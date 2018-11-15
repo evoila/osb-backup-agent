@@ -3,6 +3,7 @@ package shell
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -84,6 +85,14 @@ func CheckForExistingFile(directory, fileName string) bool {
 	return true
 }
 
+func GetAllExistingFiles(directory string) ([]os.FileInfo, error) {
+	files, err := ioutil.ReadDir(directory)
+	if err != nil {
+		return nil, err
+	}
+	return files, err
+}
+
 func CheckForBothExistingFiles(directory, fileName string) (bool, string) {
 	if CheckForExistingFile(directory, fileName) {
 		log.Println("File", fileName, "found.")
@@ -101,6 +110,22 @@ func CheckForBothExistingFiles(directory, fileName string) (bool, string) {
 
 }
 
+// GetCompleteFileName returns the name of the first file in the given directory, that starts with the given fileNameWithoutType
+// Use an empty string for fileNameWithoutType to get the first file in the directory.
+func GetCompleteFileName(directory, fileNameWithoutType string) (string, error) {
+	files, err := ioutil.ReadDir(directory)
+	if err != nil {
+		return "", err
+	}
+
+	for _, f := range files {
+		if strings.HasPrefix(f.Name(), fileNameWithoutType) {
+			return f.Name(), nil
+		}
+	}
+	return "", errors.New("Could not find a file starting with " + fileNameWithoutType)
+}
+
 func GetPathToFile(directory, fileName string) string {
 	return errorlog.Concat([]string{directory, fileName}, "/")
 }
@@ -114,8 +139,8 @@ func GetFileSize(path string) (int64, error) {
 }
 
 func addEnvVars(params []string, cmd *exec.Cmd) {
-	// Currently not setting os ENV VAR for the shells !
-	//cmd.Env = os.Environ()
+	// Currently not setting ENV VARs of the current os for the shells ! Only the given additional ones !
+	// cmd.Env = os.Environ()
 	for _, param := range params {
 		cmd.Env = append(cmd.Env, param)
 	}
