@@ -337,5 +337,6 @@ func GetBackupFilename(host, database string) string {
 	// using the UTC of the local machine!!!
 	currentTime := time.Now().UTC()
 	log.Printf("Getting filename by current UTC as is %v-%v-%02vT%02v:%02v:%02v+00:00\n", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second())
-	return fmt.Sprintf("%s_%v_%v_%02v_%s%s", host, currentTime.Year(), int(currentTime.Month()), currentTime.Day(), database, ".tar.gz")
+	return fmt.Sprintf("%v_%v_%02v_%02v_%02v_%s_%s%s", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), host, database, ".tar.gz")
+	//	return fmt.Sprintf("%s_%v_%v_%02v_%s%s", host, currentTime.Year(), int(currentTime.Month()), currentTime.Day(), database, ".tar.gz")
 }
