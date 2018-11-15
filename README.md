@@ -301,7 +301,7 @@ In the backup stage, after the script generated the file to upload (name consist
 - `pre-backup-lock databasename`
 - `pre-backup-check databasename`
 - `backup host username password databasename path_for_backup_file job_d compression_flag encryption_key`
-- `backup-cleanup databasename`
+- `backup-cleanup databasename job_id`
 - `post-backup-unlock databasename`
 
 #### Restore ####
@@ -314,7 +314,7 @@ The agent runs following shell scripts from top to bottom:
 ##### Script Parameters #####
 - `pre-restore-lock`
 - `restore host username password databasename restore_directory_path filename job_id compression_flag encryption_key`
-- `restore-cleanup`
+- `restore-cleanup job_id`
 - `post-restore-unlock`
 
 In the restore stage, before the dedicated script starts the actual restore, the agent downloads the backed up restore file from the cloud storage, using the given information and credentials, and puts it in the dedicated directory.

@@ -48,10 +48,13 @@ func ExecShellScript(path string, jsonParams []string, params []string) (bytes.B
 		} else if len(params) == 8 { // Backup
 			log.Println("Using following parameters: [", params[0], params[1], "<redacted>", params[3], params[4], params[5], params[6], "<redacted>", "]")
 			cmd = exec.Command("bash", path, params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7])
-		} else if len(params) == 1 { // pre-backup-check, pre-backup-lock, backup-cleanup, post-backup-unlock
+		} else if len(params) == 2 { // backup-cleanup,
+			log.Println("Using following parameters: [", params[0], params[1], "]")
+			cmd = exec.Command("bash", path, params[0], params[1])
+		} else if len(params) == 1 { // pre-backup-check, pre-backup-lock, post-backup-unlock, restore-cleanup
 			log.Println("Using following parameter: ", params[0])
 			cmd = exec.Command("bash", path, params[0])
-		} else {
+		} else { // pre-restore-lock, post-restore-unlock
 			var o, e bytes.Buffer
 			return o, e, errors.New(errorlog.Concat([]string{"Wrong amount of parameters were given: ", strconv.Itoa(len(params))}, ""))
 		}

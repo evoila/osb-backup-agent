@@ -209,7 +209,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 		jobs.UpdateRestoreJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.RestoreCleanupLog, response.RestoreCleanupErrorLog, err = shell.ExecuteScriptForStage(NameRestoreCleanup, envParameters)
+		status, response.RestoreCleanupLog, response.RestoreCleanupErrorLog, err = shell.ExecuteScriptForStage(NameRestoreCleanup, envParameters, body.Id)
 		jobs.UpdateRestoreJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
