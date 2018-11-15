@@ -265,7 +265,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 }
 
 func download(body httpBodies.RestoreBody, downloadType string) error {
-	var restoreDirectory = configuration.GetRestoreDirectory()
+	var restoreDirectory = configuration.GetRestoreDirectory() + "/" + body.Id
 	var path = errorlog.Concat([]string{restoreDirectory, "/", body.Destination.Filename}, "")
 	var err error
 	if shell.CheckForExistingFile(restoreDirectory, body.Destination.Filename) {

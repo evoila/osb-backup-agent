@@ -215,7 +215,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		var path = GetBackupPath(body.Backup.Host, body.Backup.Database)
+		var path = GetBackupPath(body.Backup.Host, body.Backup.Database, body.Id)
 		status, response.BackupLog, response.BackupErrorLog, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
 			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, path, body.Id, strconv.FormatBool(body.Compression), body.Encryption_key)
 		jobs.UpdateBackupJob(body.Id, response)
@@ -304,8 +304,8 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 
 func upload(body httpBodies.BackupBody, uploadType string) (string, int64, error) {
 	var fileName = GetBackupFilename(body.Backup.Host, body.Backup.Database)
-	var backupDirectory = configuration.GetBackupDirectory()
-	var path = GetBackupPath(body.Backup.Host, body.Backup.Database)
+	var backupDirectory = configuration.GetBackupDirectory() + "/" + body.Id
+	var path = GetBackupPath(body.Backup.Host, body.Backup.Database, body.Id)
 	if !shell.CheckForExistingFile(backupDirectory, fileName) {
 		return "", 0, errorlog.LogError("File not found: ", path)
 	}
@@ -326,16 +326,16 @@ func upload(body httpBodies.BackupBody, uploadType string) (string, int64, error
 	return fileName, size, err
 }
 
-func GetBackupPath(host, database string) string {
+func GetBackupPath(host, database, jobId string) string {
 	var backupDirectory = configuration.GetBackupDirectory()
 	var fileName = GetBackupFilename(host, database)
-	var path = errorlog.Concat([]string{backupDirectory, "/", fileName}, "")
+	var path = errorlog.Concat([]string{backupDirectory, "/", jobId, "/", fileName}, "")
 	return path
 }
 
 func GetBackupFilename(host, database string) string {
 	// using the UTC of the local machine!!!
 	currentTime := time.Now().UTC()
-	log.Printf("Getting filename by current UTC as is %v-%v-%02vT%v:%v:%v+00:00\n", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second())
+	log.Printf("Getting filename by current UTC as is %v-%v-%02vT%02v:%02v:%02v+00:00\n", currentTime.Year(), int(currentTime.Month()), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second())
 	return fmt.Sprintf("%s_%v_%v_%02v_%s%s", host, currentTime.Year(), int(currentTime.Month()), currentTime.Day(), database, ".tar.gz")
 }
