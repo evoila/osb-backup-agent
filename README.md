@@ -297,10 +297,23 @@ The agent runs following shell scripts from top to bottom:
 
 In the backup stage, after the script generated the file to upload (name consists of `<host>_YYYY_MM_DD_<dbname>.tar.gz`), the agent uploads the backup file from the set directory to the cloud storage using the given information and credentials.
 
+##### Script Parameters #####
+- `pre-backup-lock databasename`
+- `pre-backup-check databasename`
+- `backup host username password databasename path_for_backup_file job_d compression_flag encryption_key`
+- `backup-cleanup databasename`
+- `post-backup-unlock databasename`
+
 #### Restore ####
 The agent runs following shell scripts from top to bottom:
 - `pre-restore-lock`
 - `restore`
+- `restore-cleanup`
+- `post-restore-unlock`
+
+##### Script Parameters #####
+- `pre-restore-lock`
+- `restore host username password databasename restore_directory_path filename job_id compression_flag encryption_key`
 - `restore-cleanup`
 - `post-restore-unlock`
 

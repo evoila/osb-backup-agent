@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/evoila/osb-backup-agent/configuration"
@@ -150,6 +151,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 	response.Message = "restore is running"
 	response.Status = httpBodies.Status_running
 	response.Type = body.Destination.Type
+	response.Compression = body.Compression
 	jobs.UpdateRestoreJob(body.Id, response)
 
 	// Set up variables for filling response bodies later on
@@ -184,27 +186,20 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 
 		if body.Destination.Type == "S3" {
 			err = download(body, body.Destination.Type)
-			if err != nil {
-				status = false
-				log.Println("[ERROR] Downloading from S3 failed due to '", err.Error(), "'")
-			} else {
-				status, response.RestoreLog, response.RestoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
-					body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.Filename)
-				jobs.UpdateRestoreJob(body.Id, response)
-			}
 		} else if body.Destination.Type == "SWIFT" {
 			err = download(body, body.Destination.Type)
-			if err != nil {
-				status = false
-				log.Println("[ERROR] Downloading from swift failed due to '", err.Error(), "'")
-			} else {
-				status, response.RestoreLog, response.RestoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
-					body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.Filename)
-				jobs.UpdateRestoreJob(body.Id, response)
-			}
 		} else {
 			status = false
 			err = errors.New("type is not supported")
+		}
+
+		if err != nil {
+			status = false
+			err = errorlog.LogError("Downloading from "+body.Destination.Type+" failed due to '", err.Error(), "'")
+		} else {
+			status, response.RestoreLog, response.RestoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
+				body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(), body.Destination.Filename, body.Id, strconv.FormatBool(body.Compression), body.Encryption_key)
+			jobs.UpdateRestoreJob(body.Id, response)
 		}
 
 		log.Println("> Finishing", response.State, "stage.")
@@ -252,11 +247,11 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 		if err != nil {
 			errorMessage = err.Error()
 		}
-		errorlog.LogError("Restore failed due to '", errorMessage, "'")
+		err = errorlog.LogError("Restore failed due to '", errorMessage, "'")
 
 		response.Status = httpBodies.Status_failed
 		response.Message = "restore failed"
-		response.ErrorMessage = errorMessage
+		response.ErrorMessage = err.Error()
 
 		log.Println("Restore incompletely carried out")
 

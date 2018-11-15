@@ -3,6 +3,7 @@ package httpBodies
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/evoila/osb-backup-agent/errorlog"
 )
@@ -17,6 +18,7 @@ type BackupResponse struct {
 	State                    string   `json:"state"`
 	ErrorMessage             string   `json:"error_message,omitempty"`
 	Type                     string   `json:"type"`
+	Compression              bool     `json:"compression"`
 	Region                   string   `json:"region,omitempty"`
 	Bucket                   string   `json:"bucket,omitempty"`
 	AuthUrl                  string   `json:"authUrl,omitempty"`
@@ -51,6 +53,7 @@ type RestoreResponse struct {
 	State                     string `json:"state"`
 	ErrorMessage              string `json:"error_message,omitempty"`
 	Type                      string `json:"type"`
+	Compression               bool   `json:"compression"`
 	StartTime                 string `json:"start_time"`
 	EndTime                   string `json:"end_time"`
 	ExecutionTime             int64  `json:"execution_time_ms"`
@@ -71,15 +74,19 @@ type ErrorResponse struct {
 }
 
 type BackupBody struct {
-	Id          string
-	Destination DestinationInformation
-	Backup      DbInformation
+	Id             string
+	Compression    bool
+	Encryption_key string
+	Destination    DestinationInformation
+	Backup         DbInformation
 }
 
 type RestoreBody struct {
-	Id          string
-	Destination DestinationInformation
-	Restore     DbInformation
+	Id             string
+	Compression    bool
+	Encryption_key string
+	Destination    DestinationInformation
+	Restore        DbInformation
 }
 
 type DestinationInformation struct {
@@ -112,7 +119,9 @@ func PrintOutBackupBody(body BackupBody) {
 	dbPassword := GetRedactedOrEmptyPasswordString(body.Backup.Password)
 
 	log.Println("Backup Request Body: {\n",
-		errorlog.Concat([]string{"    \"id\" : ", body.Id, "\",\n"}, ""),
+		errorlog.Concat([]string{"    \"id\" : \"", body.Id, "\",\n"}, ""),
+		errorlog.Concat([]string{"    \"compression\" : \"", strconv.FormatBool(body.Compression), "\",\n"}, ""),
+		errorlog.Concat([]string{"    \"encryption_key\" : \"", body.Encryption_key, "\",\n"}, ""),
 		"    \"destination\" : {\n",
 		errorlog.Concat([]string{"        \"type\" : \"", body.Destination.Type, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),
@@ -141,12 +150,12 @@ func PrintOutBackupBody(body BackupBody) {
 
 // Returns true if no fields are missing
 func CheckForMissingFieldsInRestoreBody(body RestoreBody) bool {
-	return body.Id != "" && CheckForMissingFieldDestinationInformation(body.Destination, false) && CheckForMissingFieldsInDbInformation(body.Restore)
+	return body.Id != "" && body.Encryption_key != "" && CheckForMissingFieldDestinationInformation(body.Destination, false) && CheckForMissingFieldsInDbInformation(body.Restore)
 }
 
 // Returns true if no fields are missing
 func CheckForMissingFieldsInBackupBody(body BackupBody) bool {
-	return body.Id != "" && CheckForMissingFieldDestinationInformation(body.Destination, true) && CheckForMissingFieldsInDbInformation(body.Backup)
+	return body.Id != "" && body.Encryption_key != "" && CheckForMissingFieldDestinationInformation(body.Destination, true) && CheckForMissingFieldsInDbInformation(body.Backup)
 }
 
 func CheckForMissingFieldDestinationInformation(body DestinationInformation, fileCanBeMissing bool) bool {
@@ -169,9 +178,12 @@ func PrintOutRestoreBody(body RestoreBody) {
 	authSecret := GetRedactedOrEmptyPasswordString(body.Destination.AuthSecret)
 	swiftPassword := GetRedactedOrEmptyPasswordString(body.Destination.Password)
 	dbPassword := GetRedactedOrEmptyPasswordString(body.Restore.Password)
+	privateEncryptionKey := GetRedactedOrEmptyPasswordString(body.Encryption_key)
 
 	log.Println("Restore Request Body: {\n",
-		errorlog.Concat([]string{"    \"id\" : ", body.Id, "\",\n"}, ""),
+		errorlog.Concat([]string{"    \"id\" : \"", body.Id, "\",\n"}, ""),
+		errorlog.Concat([]string{"    \"compression\" : \"", strconv.FormatBool(body.Compression), "\",\n"}, ""),
+		errorlog.Concat([]string{"    \"encryption_key\" : \"", privateEncryptionKey, "\",\n"}, ""),
 		"    \"destination\" : {\n",
 		errorlog.Concat([]string{"        \"type\" : \"", body.Destination.Type, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),

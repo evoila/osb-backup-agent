@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/evoila/osb-backup-agent/configuration"
@@ -163,6 +164,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 	response, _ := jobs.GetBackupJob(body.Id)
 	response.Message = "backup is running"
 	response.Type = body.Destination.Type
+	response.Compression = body.Compression
 	response.Status = httpBodies.Status_running
 	response.Bucket = body.Destination.Bucket
 	response.Region = body.Destination.Region
@@ -215,31 +217,30 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		log.Println("> Starting", response.State, "stage.")
 		var path = GetBackupPath(body.Backup.Host, body.Backup.Database)
 		status, response.BackupLog, response.BackupErrorLog, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
-			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, path)
+			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, path, body.Id, strconv.FormatBool(body.Compression), body.Encryption_key)
 		jobs.UpdateBackupJob(body.Id, response)
-		if err == nil {
+		if err != nil {
+			status = false
+			err = errorlog.LogError("Executing the shell script failed due to '", err.Error(), "'")
+		} else {
 			if body.Destination.Type == "S3" {
 				response.FileName, fileSize, err = upload(body, body.Destination.Type)
-				if err != nil {
-					status = false
-					log.Println("[ERROR] Uploading to S3 failed due to '", err.Error(), "'")
-				}
-				response.FileSize = httpBodies.FileSize{Size: fileSize, Unit: "byte"}
 				jobs.UpdateBackupJob(body.Id, response)
 			} else if body.Destination.Type == "SWIFT" {
 				response.FileName, fileSize, err = upload(body, body.Destination.Type)
-				if err != nil {
-					status = false
-					log.Println("[ERROR] Uploading to swift failed due to '", err.Error(), "'")
-				}
-				response.FileSize = httpBodies.FileSize{Size: fileSize, Unit: "byte"}
-				jobs.UpdateBackupJob(body.Id, response)
-
 			} else {
 				status = false
 				err = errors.New("type is not supported")
 			}
+
+			if err != nil {
+				status = false
+				err = errorlog.LogError("Uploading to "+body.Destination.Type+" failed due to '", err.Error(), "'")
+			}
+			response.FileSize = httpBodies.FileSize{Size: fileSize, Unit: "byte"}
+			jobs.UpdateBackupJob(body.Id, response)
 		}
+
 		log.Println("> Finishing", response.State, "stage.")
 	}
 	if status {
@@ -284,11 +285,11 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		if err != nil {
 			errorMessage = err.Error()
 		}
-		errorlog.LogError("Backup failed due to '", errorMessage, "'")
+		err = errorlog.LogError("Backup failed due to '", errorMessage, "'")
 
 		response.Status = httpBodies.Status_failed
 		response.Message = "backup failed"
-		response.ErrorMessage = errorMessage
+		response.ErrorMessage = err.Error()
 
 		log.Println("Backup incompletely carried out")
 
