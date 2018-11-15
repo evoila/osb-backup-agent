@@ -215,9 +215,9 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		var path = GetBackupFilePathWithoutFileType(body.Backup.Host, body.Backup.Database, body.Id)
+		var filename = GetBackupFilename(body.Backup.Host, body.Backup.Database)
 		status, response.BackupLog, response.BackupErrorLog, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
-			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, path, body.Id, strconv.FormatBool(body.Compression), body.Encryption_key)
+			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, filename, body.Id, strconv.FormatBool(body.Compression), body.Encryption_key)
 		jobs.UpdateBackupJob(body.Id, response)
 		if err != nil {
 			status = false

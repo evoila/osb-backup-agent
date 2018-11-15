@@ -300,11 +300,12 @@ In the backup stage, the agent generates a name (consists of `YYYY_MM_DD_HH_MM_<
 ##### Script Parameters #####
 - `pre-backup-lock databasename`
 - `pre-backup-check databasename`
-- `backup host username password databasename path_for_backup_file_without_type job_d compression_flag encryption_key`
+- `backup host username password databasename file_name_without_type job_id compression_flag encryption_key`
 - `backup-cleanup databasename job_id`
 - `post-backup-unlock databasename`
 
-The path_for_backup_file_without_type parameter consists of the backup_directory_path/job_id/generated_file_name. The backup_directory_path is set via ENV VAR, the job_id determined by the executing job and the generated_file_name is
+Be aware that encryption key can be empty and uppon adding more parameters after the encryption_key, the order could not match anymore. In future there might be need for named parameters.
+
 
 #### Restore ####
 The agent runs following shell scripts from top to bottom:
@@ -313,15 +314,17 @@ The agent runs following shell scripts from top to bottom:
 - `restore-cleanup`
 - `post-restore-unlock`
 
-In the restore stage, the agent dowloads a file with the given file name (out of the request body) from the used cloud storage to the dedicated directory (`restore_direcotry/job_id/`)
+In the restore stage, the agent downloads a file with the given file name (out of the request body) from the used cloud storage to the dedicated directory (`restore_direcotry/job_id/`).
 
 ##### Script Parameters #####
 - `pre-restore-lock`
-- `restore host username password databasename restore_directory_path filename job_id compression_flag encryption_key`
+- `restore host username password databasename filename job_id compression_flag encryption_key`
 - `restore-cleanup job_id`
 - `post-restore-unlock`
 
 In the restore stage, before the dedicated script starts the actual restore, the agent downloads the backed up restore file from the cloud storage, using the given information and credentials, and puts it in the dedicated directory.
+
+Be aware that encryption key can be empty and uppon adding more parameters after the encryption_key, the order could not match anymore. In future there might be need for named parameters.
 
 ## Version ##
 See git tags.

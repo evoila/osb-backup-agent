@@ -43,10 +43,7 @@ func ExecShellScript(path string, jsonParams []string, params []string) (bytes.B
 	var cmd *exec.Cmd
 
 	if len(params) > 0 {
-		if len(params) == 9 { // restore
-			log.Println("Using following parameters: [", params[0], params[1], "<redacted>", params[3], params[4], params[5], params[6], params[7], "<redacted>", "]")
-			cmd = exec.Command("bash", path, params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8])
-		} else if len(params) == 8 { // Backup
+		if len(params) == 8 { // backup, restore
 			log.Println("Using following parameters: [", params[0], params[1], "<redacted>", params[3], params[4], params[5], params[6], "<redacted>", "]")
 			cmd = exec.Command("bash", path, params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7])
 		} else if len(params) == 2 { // backup-cleanup,
