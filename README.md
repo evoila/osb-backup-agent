@@ -317,7 +317,7 @@ The agent runs following shell scripts from top to bottom:
 In the restore stage, the agent downloads a file with the given file name (out of the request body) from the used cloud storage to the dedicated directory (`restore_direcotry/job_id/`).
 
 ##### Script Parameters #####
-- `pre-restore-lock`
+- `pre-restore-lock job_id`
 - `restore host username password databasename filename job_id compression_flag encryption_key`
 - `restore-cleanup job_id`
 - `post-restore-unlock`
