@@ -198,7 +198,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 			err = errorlog.LogError("Downloading from "+body.Destination.Type+" failed due to '", err.Error(), "'")
 		} else {
 			status, response.RestoreLog, response.RestoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
-				body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database, configuration.GetRestoreDirectory(),
+				body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database,
 				body.Destination.Filename, body.Id, strconv.FormatBool(body.Compression), body.Encryption_key)
 			jobs.UpdateRestoreJob(body.Id, response)
 		}
