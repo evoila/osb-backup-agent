@@ -49,10 +49,10 @@ func ExecShellScript(path string, jsonParams []string, params []string) (bytes.B
 		} else if len(params) == 2 { // backup-cleanup,
 			log.Println("Using following parameters: [", params[0], params[1], "]")
 			cmd = exec.Command("bash", path, params[0], params[1])
-		} else if len(params) == 1 { // pre-backup-check, pre-backup-lock, post-backup-unlock, restore-cleanup
+		} else if len(params) == 1 { // pre-backup-check, pre-backup-lock, post-backup-unlock, pre-restore-lock, restore-cleanup
 			log.Println("Using following parameter: ", params[0])
 			cmd = exec.Command("bash", path, params[0])
-		} else { // pre-restore-lock, post-restore-unlock
+		} else { // post-restore-unlock
 			var o, e bytes.Buffer
 			return o, e, errors.New(errorlog.Concat([]string{"Wrong amount of parameters were given: ", strconv.Itoa(len(params))}, ""))
 		}
