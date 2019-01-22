@@ -130,6 +130,8 @@ Fields that are not dedicated to the chosen type will be ignored.
 ```json
 {
     "id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
+    "compression" : true,
+    "encryption_key" : "example-encryption-key",
     "destination" : {
         "type": "S3 / SWIFT",
 
@@ -157,13 +159,15 @@ Fields that are not dedicated to the chosen type will be ignored.
     }
 }
 ```
-Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the scripts to work with.
+Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the scripts to work with. Furthermore will the compression field default to false, if no explicit value is present.
 
 
 ### Trigger Restore Body ###
 ```json
 {
     "id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
+    "compression" : true,
+    "encryption_key" : "example-encryption-key",
     "destination" : {
         "type": "S3 / SWIFT",
         "filename": "filename",
@@ -192,7 +196,7 @@ Please note that objects in the parameters object can not have nested objects, a
     }
 }
 ```
-Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the shell scripts to work with.
+Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the shell scripts to work with. Furthermore will the compression field default to false, if no explicit value is present.
 
 ### Job Deletion Body ###
 

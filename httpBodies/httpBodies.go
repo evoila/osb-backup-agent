@@ -149,29 +149,109 @@ func PrintOutBackupBody(body BackupBody) {
 }
 
 // Returns true if no fields are missing
-func CheckForMissingFieldsInRestoreBody(body RestoreBody) bool {
-	return body.Id != "" && body.Encryption_key != "" && CheckForMissingFieldDestinationInformation(body.Destination, false) && CheckForMissingFieldsInDbInformation(body.Restore)
+func CheckForMissingFieldsInRestoreBody(body RestoreBody) (bool, string) {
+	missingFields := ""
+	if body.Id == "" {
+		missingFields += " id"
+	}
+	if body.Encryption_key == "" {
+		missingFields += " encryption_key"
+	}
+
+	valid, fields := CheckForMissingFieldDestinationInformation(body.Destination, false)
+	if !valid {
+		missingFields += " destination(" + fields + ")"
+	}
+	valid, fields = CheckForMissingFieldsInDbInformation(body.Restore)
+	if !valid {
+		missingFields += " restore(" + fields + ")"
+	}
+	return missingFields == "", missingFields
 }
 
 // Returns true if no fields are missing
-func CheckForMissingFieldsInBackupBody(body BackupBody) bool {
-	return body.Id != "" && body.Encryption_key != "" && CheckForMissingFieldDestinationInformation(body.Destination, true) && CheckForMissingFieldsInDbInformation(body.Backup)
-}
-
-func CheckForMissingFieldDestinationInformation(body DestinationInformation, fileCanBeMissing bool) bool {
-	if body.Type == "S3" {
-		return body.AuthKey != "" && body.AuthSecret != "" && body.Bucket != "" && (body.Filename != "" || fileCanBeMissing) && body.Region != ""
-	} else if body.Type == "swift" {
-		return body.AuthUrl != "" && body.Domain != "" && body.Container_name != "" && body.Project_name != "" && body.Username != "" && body.Password != "" && (body.Filename != "" || fileCanBeMissing)
-	} else if body.Type == "" {
-		return false
+func CheckForMissingFieldsInBackupBody(body BackupBody) (bool, string) {
+	missingFields := ""
+	if body.Id == "" {
+		missingFields += " id"
 	}
-	// if type is not empty but not supported, a later check will take care of the error handling
-	return true
+	if body.Encryption_key == "" {
+		missingFields += " encryption_key"
+	}
+	valid, fields := CheckForMissingFieldDestinationInformation(body.Destination, true)
+	if !valid {
+		missingFields += " destination(" + fields + ")"
+	}
+	valid, fields = CheckForMissingFieldsInDbInformation(body.Backup)
+	if !valid {
+		missingFields += " backup(" + fields + ")"
+	}
+	return missingFields == "", missingFields
 }
 
-func CheckForMissingFieldsInDbInformation(body DbInformation) bool {
-	return body.Database != "" && body.Host != "" && body.Password != "" && body.Username != ""
+func CheckForMissingFieldDestinationInformation(body DestinationInformation, fileCanBeMissing bool) (bool, string) {
+	missingFields := ""
+	if body.Type == "S3" {
+		if body.AuthKey == "" {
+			missingFields += " authKey"
+		}
+		if body.AuthSecret == "" {
+			missingFields += " authSecret"
+		}
+		if body.Bucket == "" {
+			missingFields += " bucket"
+		}
+		if body.Region == "" {
+			missingFields += " region"
+		}
+		if body.Filename == "" && !fileCanBeMissing {
+			missingFields += " filename"
+		}
+		return missingFields == "", missingFields
+	} else if body.Type == "SWIFT" {
+		if body.AuthUrl == "" {
+			missingFields += " authUrl"
+		}
+		if body.Domain == "" {
+			missingFields += " domain"
+		}
+		if body.Container_name == "" {
+			missingFields += " container_name"
+		}
+		if body.Project_name == "" {
+			missingFields += " project_name"
+		}
+		if body.Username == "" {
+			missingFields += " username"
+		}
+		if body.Password == "" {
+			missingFields += " password"
+		}
+		if body.Filename == "" && !fileCanBeMissing {
+			missingFields += " filename"
+		}
+		return missingFields == "", missingFields
+	} else if body.Type == "" {
+		return false, " type"
+	}
+	return false, " supported type"
+}
+
+func CheckForMissingFieldsInDbInformation(body DbInformation) (bool, string) {
+	missingFields := ""
+	if body.Database == "" {
+		missingFields += " database"
+	}
+	if body.Database == "" {
+		missingFields += " host"
+	}
+	if body.Database == "" {
+		missingFields += " password"
+	}
+	if body.Database == "" {
+		missingFields += " username"
+	}
+	return missingFields == "", missingFields
 }
 
 func PrintOutRestoreBody(body RestoreBody) {

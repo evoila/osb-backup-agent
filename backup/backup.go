@@ -115,9 +115,9 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		missingFields := !httpBodies.CheckForMissingFieldsInBackupBody(body)
-		if missingFields {
-			err = errors.New("body is missing essential fields")
+		allFieldsExist, missingFields := httpBodies.CheckForMissingFieldsInBackupBody(body)
+		if !allFieldsExist {
+			err = errors.New("body is missing essential fields:" + missingFields)
 			errorlog.LogError("Backup failed during body deserialization due to '", err.Error(), "'")
 			var response = httpBodies.BackupResponse{Status: httpBodies.Status_failed, Message: "Backup failed.", State: "Body Deserialization", ErrorMessage: err.Error()}
 			jobs.AddNewBackupJob(body.Id)

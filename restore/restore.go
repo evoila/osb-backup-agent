@@ -100,9 +100,9 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		missingFields := !httpBodies.CheckForMissingFieldsInRestoreBody(body)
-		if missingFields {
-			err = errors.New("body is missing essential fields")
+		allFieldsExist, missingFields := httpBodies.CheckForMissingFieldsInRestoreBody(body)
+		if !allFieldsExist {
+			err = errors.New("body is missing essential fields:" + missingFields)
 			errorlog.LogError("Restore failed during body deserialization due to '", err.Error(), "'")
 			var response = httpBodies.RestoreResponse{Status: httpBodies.Status_failed, Message: "Restore failed.", State: "Body Deserialization", ErrorMessage: err.Error()}
 
