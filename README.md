@@ -115,7 +115,7 @@ See Backup Polling Status Codes and their meaning
 
 
 #### Restore Job Deletion ####
-This call requests the deletion of a result of a backup job. This should be done to either use the id again or free the space for the agent.
+This call requests the deletion of a result of a restore job. This should be done to either use the id again or free the space for the agent.
 
 Endpoint: DELETE /restore
 
