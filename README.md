@@ -16,8 +16,8 @@ The agent uses environment variables to configurate its parameters.
 | client_username | admin | The username for authorization of http requests |
 | client_password | admin | The password for authorization of http requests |
 | client_port | 8000 | The port the client will use for the http interface. Defaults to 8000 |
-| directory_backup | /tmp/backups | The directory in which the agent looks for files to upload to the cloud storage. |
-| directory_restore | /tmp/restores | The directory in which the agent will put the downloaded restore file from the cloud storage. |
+| directory_backup | /tmp/backups | The directory in which the agent looks for files to upload to the cloud storage. For every job, a directory with the id of the job as its name will be created. |
+| directory_restore | /tmp/restores | The directory in which the agent will put the downloaded restore files from the cloud storage. |
 | scrips_path | /tmp/scrips | The directory in which the agent will look for the backup scrips. Defaults to `/var/vcap/jobs/backup-agent/backup`  |
 | allowed_to_delete_files | true | Flag for permission to delete already existing files. Defaults to `false`. | 
 | max_job_number | 10 | Maximum number of running jobs at a time. Defaults to 10. |
@@ -332,3 +332,4 @@ Be aware that encryption key can be empty and uppon adding more parameters after
 
 ## Version ##
 See git tags.
+
