@@ -2,7 +2,7 @@
 
 This project holds a small go web agent for backup and restore actions for bosh, but does not contain any logic for specific services or applications. The agent simply allows to trigger scripts in a predefined directory and uploads or downloads from a cloud storage.
 
-Currently implemented cloud storages: **S3**, **SWIFT**
+Supported cloud storages: **S3**, **SWIFT**
 
 ## Installation ##
 Download this repository and then get its dependencies via ```glide update```.
@@ -24,7 +24,7 @@ The agent uses environment variables to configurate its parameters.
 
 
 ## Endpoints ##
-The agent supports three http endpoints for status, backup and restore. The endpoints are secured by BasicAuth.
+The agent supports http endpoints for status, backup and restore. These endpoints are secured by BasicAuth.
 
 |Endpoint|Method|Body|Description|
 |----|----|----|----|
@@ -35,8 +35,6 @@ The agent supports three http endpoints for status, backup and restore. The endp
 |/restore|PUT| See Restore below |Trigger the restore procedure for the service.|
 |/restore/{id}|GET| - |Returns the status of the requested restore job.|
 |/restore|DELETE| See Job deletion body below |Removes a result of a restore job.|
-
-Following status codes can be expected for multiple endpoints:
 
 ### Backup ###
 
@@ -54,7 +52,7 @@ The backup agent intentionally returns the following status codes. Codes that di
 | --- | --- | --- |
 | 201 | - | A backup was triggered and is getting run asynchronously. |
 | 400| See Polling Body| The information in the body are not sufficient. |
-| 401| See Simple Response Bbody | The provided credentials are not correct. |
+| 401| See Simple Response Body | The provided credentials are not correct. |
 | 409 | See Polling Body| There already exists a job with the given id.|
 | 429 | See Error Message Response Body| Not allowed to spawn a new job, because it would break the maximum job limit.|
 
@@ -65,6 +63,7 @@ Endpoint: GET /backup/{id}
 
 ##### Status Codes and their meaning #####
 The backup agent intentionally returns the following status codes. Codes that differ are likely to be unexpected and not intended to be returned.
+
 | Code | Body | Description |
 | --- | --- | --- |
 | 200 | See Polling Body | A matching job was found and its status is returned. |
@@ -80,6 +79,7 @@ Endpoint: DELETE /backup
 
 ##### Status Codes and their meaning #####
 The backup agent intentionally returns the following status codes. Codes that differ are likely to be unexpected and not intended to be returned.
+
 | Code | Body | Description |
 | --- | --- | --- |
 | 200 | - | A matching job was found and deleted. |
@@ -226,7 +226,7 @@ Please note that objects in the parameters object can not have nested objects, a
 ```
 
 ### Backup Polling Body ###
-Please not that the ``error_message`` field will not show up in the json, if it is empty. Same goes for fields that are dedicated to a specific backup destination type, which will be ignored if empty.
+Please be aware of the fact that the ``error_message`` field will not show up in the json, if it is empty. Same goes for fields that are dedicated to a specific backup destination type, which will be ignored if empty.
 
 ```json
 {
@@ -265,7 +265,7 @@ Please not that the ``error_message`` field will not show up in the json, if it 
 ```
 
 ### Restore Polling Body ###
-Please not that the ``error_message`` field will not show up in the json, if it is empty.
+Please be aware of the fact that the ``error_message`` field will not show up in the json, if it is empty. 
 
 ```json
 {
