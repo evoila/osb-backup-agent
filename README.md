@@ -127,18 +127,42 @@ See Backup Job Deletion Status Codes and their meaning
 
 ### Trigger Backup Body ###
 Fields that are not dedicated to the chosen type will be ignored.
+Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the scripts to work with. Furthermore will the compression field default to false, if no explicit value is present.
+
+#### S3
 ```json
 {
     "id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
     "compression" : true,
     "encryption_key" : "example-encryption-key",
     "destination" : {
-        "type": "S3 / SWIFT",
+        "type": "S3",
 
         "bucket": "bucketName",
         "region": "regionName",
         "authKey": "key",
         "authSecret": "secret",
+    },
+    "backup" : {
+        "host": "host",
+        "user": "user",
+        "password": "password",
+        "database": "database name",
+        "parameters": [
+            { "key": "arbitraryValue" },
+            { "retries": 2}
+        ]
+    }
+}
+```
+#### Openstack Swift
+```json
+{
+    "id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
+    "compression" : true,
+    "encryption_key" : "example-encryption-key",
+    "destination" : {
+        "type": "SWIFT",
 
         "authUrl" : "auth url",
         "domain" : "domain name",
@@ -159,23 +183,48 @@ Fields that are not dedicated to the chosen type will be ignored.
     }
 }
 ```
-Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the scripts to work with. Furthermore will the compression field default to false, if no explicit value is present.
+
 
 
 ### Trigger Restore Body ###
+Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the shell scripts to work with. Furthermore will the compression field default to false, if no explicit value is present.
+
+#### S3
 ```json
 {
     "id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
     "compression" : true,
     "encryption_key" : "example-encryption-key",
     "destination" : {
-        "type": "S3 / SWIFT",
+        "type": "S3",
         "filename": "filename",
 
         "bucket": "bucketName",
         "region": "regionName",
         "authKey": "key",
         "authSecret": "secret",
+    },
+    "restore" : {
+        "host": "host",
+        "user": "user",
+        "password": "password",
+        "database": "database name",
+        "parameters": [
+            { "key": "arbitraryValue" },
+            { "retries": 2}
+        ]
+    }
+}
+```
+#### Openstack Swift
+```json
+{
+    "id" : "778f038c-e1c5-11e8-9f32-f2801f1b9fd1",
+    "compression" : true,
+    "encryption_key" : "example-encryption-key",
+    "destination" : {
+        "type": "SWIFT",
+        "filename": "filename",
         
         "authUrl" : "auth url",
         "domain" : "domain name ",
@@ -196,7 +245,6 @@ Please note that objects in the parameters object can not have nested objects, a
     }
 }
 ```
-Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the shell scripts to work with. Furthermore will the compression field default to false, if no explicit value is present.
 
 ### Job Deletion Body ###
 
@@ -238,10 +286,10 @@ Please be aware of the fact that the ``error_message`` field will not show up in
     "region": "S3 region",
     "bucket": "S3 bucket",
 
-    "authUrl": "auth url",
-    "domain": "domain name",
-    "container_name": "name of the container",
-    "project_name": "name of the project",
+    "authUrl": "auth url for swift",
+    "domain": "domain name for swift",
+    "container_name": "name of the container for swift",
+    "project_name": "name of the project for swift",
 
     "filename": "host_YYYY_MM_DD_database.tar.gz",
     "filesize": {
@@ -299,7 +347,7 @@ The agent runs following shell scripts from top to bottom:
 - `backup-cleanup`
 - `post-backup-unlock`
 
-In the backup stage, the agent generates a name (consists of `YYYY_MM_DD_HH_MM_<host>_<dbname>`) for the backup file and forwards its path (`backup_directory/job_id/generated_file_name`) to the back script. After the script generated the file to upload, the agent uploads the first encountered file in the dedicated directory (`backup_directory/job_id`) to the cloud storage using the given information and credentials.
+In the backup stage, the agent generates a name (consists of `YYYY_MM_DD_HH_MM_<host>_<dbname>`) for the backup file and forwards its path (`backup_directory/job_id/generated_file_name`) to the back script. After the script generated the file to upload, the agent uploads the first encountered file in the dedicated directory (`backup_directory/<job_id>`) to the cloud storage using the given information and credentials.
 
 ##### Script Parameters #####
 - `pre-backup-lock databasename`
@@ -308,6 +356,7 @@ In the backup stage, the agent generates a name (consists of `YYYY_MM_DD_HH_MM_<
 - `backup-cleanup databasename job_id`
 - `post-backup-unlock databasename`
 
+The job_id parameter is equal to to the id given by the request, which triggered the backup or restore.
 Be aware that encryption key can be empty and uppon adding more parameters after the encryption_key, the order could not match anymore. In future there might be need for named parameters.
 
 
@@ -318,7 +367,7 @@ The agent runs following shell scripts from top to bottom:
 - `restore-cleanup`
 - `post-restore-unlock`
 
-In the restore stage, the agent downloads a file with the given file name (out of the request body) from the used cloud storage to the dedicated directory (`restore_direcotry/job_id/`).
+In the restore stage, the agent downloads a file with the given file name (out of the request body) from the used cloud storage to the dedicated directory (`restore_directory/<job_id>/`).
 
 ##### Script Parameters #####
 - `pre-restore-lock job_id`
