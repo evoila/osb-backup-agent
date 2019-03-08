@@ -320,7 +320,7 @@ func upload(body httpBodies.BackupBody, uploadType string) (string, int64, error
 	}
 
 	// Get the first file in the directory
-	fileName, err := shell.GetCompleteFileName(backupDirectory, fileName)
+	fileName, err := shell.GetCompleteFileName(backupDirectory, "")
 	if err != nil {
 		return fileName, 0, errorlog.LogError("Getting path to backup file failed due to '", err.Error(), "'")
 	}
