@@ -15,8 +15,10 @@ This project holds a small go web agent for backup and restore actions for bosh,
 Supported cloud storages: **S3**, **SWIFT**
 
 ## Installation ##
-Download this repository and then get its dependencies via ```glide update```.
-
+* Download this repository
+* Locate it in your go path under `github.com/evoila/osb-backup-agent`
+* Get its dependencies via `glide update`
+* Run `go build`
 
 ## Configuration ##
 The agent uses environment variables to configurate its parameters.
