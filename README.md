@@ -10,7 +10,7 @@
 
 # osb-backup-agent #
 
-This project holds a small go web agent for backup and restore actions for bosh, but does not contain any logic for specific services or applications. The agent simply allows to trigger scripts in a predefined directory and uploads or downloads from a cloud storage.
+This project holds a small go web agent for backup and restore actions for bosh, but does not contain any logic for specific services or applications. The agent simply allows to trigger scripts in a predefined directory and uploads to or downloads from a cloud storage.
 
 Supported cloud storages: **S3**, **SWIFT**
 
@@ -30,6 +30,7 @@ The agent uses environment variables to configurate its parameters.
 | directory_restore | /tmp/restores | The directory in which the agent will put the downloaded restore files from the cloud storage. |
 | scrips_path | /tmp/scrips | The directory in which the agent will look for the backup scrips. Defaults to `/var/vcap/jobs/backup-agent/backup`  |
 | allowed_to_delete_files | true | Flag for permission to delete already existing files. Defaults to `false`. | 
+| skip_storage | true | Flag for instruction to skip upload and download. Defaults to `false`. | 
 | max_job_number | 10 | Maximum number of running jobs at a time. Defaults to 10. |
 
 
@@ -365,7 +366,7 @@ Please be aware of the fact that the ``error_message`` field will not show up in
 ## Functionality ##
 The agent calls a predefined set of shell scripts in order to trigger the backup or restore procedure. Generally speaking there are three stages: Pre, Action, Post. 
 These files have to be located or will be placed in the respective directories set by the environment variables.
-The upload or download functionality can be skipped by using the skipStorage field in the respective request bodies. If this is the case, the destination information for the selected storage are set as environment variables for each script.
+The upload or download functionality can be skipped by using the `skipStorage` field in the respective request bodies or via the configuration property `skip_storage`. If this is the case, the destination information for the selected storage are set as environment variables for each script.
 
 #### Backup ####
 The agent runs following shell scripts from top to bottom:
