@@ -370,6 +370,24 @@ The agent calls a predefined set of shell scripts in order to trigger the backup
 These files have to be located or will be placed in the respective directories set by the environment variables.
 The upload or download functionality can be skipped by using the `skipStorage` field in the respective request bodies or via the configuration property `skip_storage`. If this is the case, the destination information for the selected storage are set as environment variables for each script.
 
+|Environment variable key for S3| Field in destination body|
+|----|----|
+|S3_BUCKET|bucket|
+|S3_ENDPOINT|endpoint|
+|S3_REGION|region|
+|S3_AUTHKEY|authKey|
+|S3_AUTHSECRET|authSecret|
+
+|Environment variable key for SWIFT| Field in destination body|
+|----|----|
+|SWIFT_AUTHURL|authUrl|
+|SWIFT_DOMAIN|domain|
+|SWIFT_CONTAINERNAME|container_name|
+|SWIFT_PROJECTNAME|project_name|
+|SWIFT_USERNAME|username|
+|SWIFT_PASSWORD|password|
+
+
 #### Backup ####
 The agent runs following shell scripts from top to bottom:
 - `pre-backup-lock`
