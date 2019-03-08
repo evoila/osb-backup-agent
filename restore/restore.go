@@ -275,6 +275,11 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 }
 
 func download(body httpBodies.RestoreBody, downloadType string) error {
+	if body.Destination.SkipStorage {
+		log.Println("skipStorage is true -> skipping download of restore file")
+		return nil
+	}
+
 	var restoreDirectory = configuration.GetRestoreDirectory() + "/" + body.Id
 	var path = errorlog.Concat([]string{restoreDirectory, "/", body.Destination.Filename}, "")
 	var err error
@@ -292,16 +297,12 @@ func download(body httpBodies.RestoreBody, downloadType string) error {
 	}
 	log.Println("Using file destination at", path)
 
-	if body.Destination.SkipStorage {
-		log.Println("skipStorage is true -> skipping download of restore file")
+	if downloadType == "S3" {
+		log.Println("Using S3 as destination.")
+		err = s3.DownloadFile(body.Destination.Filename, path, body)
 	} else {
-		if downloadType == "S3" {
-			log.Println("Using S3 as destination.")
-			err = s3.DownloadFile(body.Destination.Filename, path, body)
-		} else {
-			log.Println("Using swift as destination.")
-			err = swift.DownloadFile(body.Destination.Filename, path, body)
-		}
+		log.Println("Using swift as destination.")
+		err = swift.DownloadFile(body.Destination.Filename, path, body)
 	}
 
 	return err

@@ -314,8 +314,13 @@ func upload(body httpBodies.BackupBody, uploadType string) (string, int64, error
 	var fileName = GetBackupFilename(body.Backup.Host, body.Backup.Database)
 	var backupDirectory = configuration.GetBackupDirectory() + "/" + body.Id
 
+	if body.Destination.SkipStorage {
+		log.Println("skipStorage is true -> skipping upload of backup file")
+		return fileName, 0, nil
+	}
+
 	// Get the first file in the directory
-	fileName, err := shell.GetCompleteFileName(backupDirectory, "")
+	fileName, err := shell.GetCompleteFileName(backupDirectory, fileName)
 	if err != nil {
 		return fileName, 0, errorlog.LogError("Getting path to backup file failed due to '", err.Error(), "'")
 	}
@@ -327,16 +332,12 @@ func upload(body httpBodies.BackupBody, uploadType string) (string, int64, error
 		return fileName, 0, errorlog.LogError("Reading file size failed due to '", err.Error(), "'")
 	}
 
-	if body.Destination.SkipStorage {
-		log.Println("skipStorage is true -> skipping upload of backup file")
+	if uploadType == "S3" {
+		log.Println("Using S3 as destination.")
+		err = s3.UploadFile(fileName, path, body)
 	} else {
-		if uploadType == "S3" {
-			log.Println("Using S3 as destination.")
-			err = s3.UploadFile(fileName, path, body)
-		} else {
-			log.Println("Using swift as destination.")
-			err = swift.UploadFile(fileName, path, body)
-		}
+		log.Println("Using swift as destination.")
+		err = swift.UploadFile(fileName, path, body)
 	}
 
 	return fileName, size, err
