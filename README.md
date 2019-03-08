@@ -1,3 +1,13 @@
+# Table of Contents
+1. [osb-backup-agent](#osb-backup-agent)
+2. [Installation](#installation)
+3. [Configuration](#configuration)
+4. [Endpoints](#endpoints)
+5. [Request Bodies](#request-bodies)
+6. [Response Bodies](#response-bodies)
+7. [Functionality](#functionality)
+8. [Version](#version)
+
 # osb-backup-agent #
 
 This project holds a small go web agent for backup and restore actions for bosh, but does not contain any logic for specific services or applications. The agent simply allows to trigger scripts in a predefined directory and uploads or downloads from a cloud storage.
@@ -127,7 +137,8 @@ See Backup Job Deletion Status Codes and their meaning
 
 ### Trigger Backup Body ###
 Fields that are not dedicated to the chosen type will be ignored.
-Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the scripts to work with. Furthermore will the compression field default to false, if no explicit value is present.
+Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the scripts to work with. **Be aware that the parameters are logged on the console of the agent! Do not use sensitive data, if you do not want to have it logged!** 
+Furthermore will the compression and skipStorage fields default to false, if no explicit value is present.
 
 #### S3
 ```json
@@ -137,8 +148,10 @@ Please note that objects in the parameters object can not have nested objects, a
     "encryption_key" : "example-encryption-key",
     "destination" : {
         "type": "S3",
+        "skipStorage" : false,
 
         "bucket": "bucketName",
+        "endpoint" : "http://custom.s3.endpoint (only needed if skipStorage is true)",
         "region": "regionName",
         "authKey": "key",
         "authSecret": "secret",
@@ -163,6 +176,7 @@ Please note that objects in the parameters object can not have nested objects, a
     "encryption_key" : "example-encryption-key",
     "destination" : {
         "type": "SWIFT",
+        "skipStorage" : false,
 
         "authUrl" : "auth url",
         "domain" : "domain name",
@@ -187,7 +201,8 @@ Please note that objects in the parameters object can not have nested objects, a
 
 
 ### Trigger Restore Body ###
-Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the shell scripts to work with. Furthermore will the compression field default to false, if no explicit value is present.
+Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the shell scripts to work with. **Be aware that the parameters are logged on the console of the agent! Do not use sensitive data, if you do not want to have it logged!**
+Furthermore will the compression and skipStorage fields default to false, if no explicit value is present.
 
 #### S3
 ```json
@@ -197,9 +212,11 @@ Please note that objects in the parameters object can not have nested objects, a
     "encryption_key" : "example-encryption-key",
     "destination" : {
         "type": "S3",
+        "skipStorage" : false,
         "filename": "filename",
 
         "bucket": "bucketName",
+        "endpoint" : "http://custom.s3.endpoint (only needed if skipStorage is true)",
         "region": "regionName",
         "authKey": "key",
         "authSecret": "secret",
@@ -224,6 +241,7 @@ Please note that objects in the parameters object can not have nested objects, a
     "encryption_key" : "example-encryption-key",
     "destination" : {
         "type": "SWIFT",
+        "skipStorage" : false,
         "filename": "filename",
         
         "authUrl" : "auth url",
@@ -283,7 +301,13 @@ Please be aware of the fact that the ``error_message`` field will not show up in
     "state": "finished / name of the current phase",
     "error_message": "contains message dedicated to the occuring error, will not show up if empty",
 
+    "type": "S3 / SWIFT",
+
+    "compression": true,
+    "skip_storage": false,
+
     "region": "S3 region",
+    "endpoint" : "S3 endpoint",
     "bucket": "S3 bucket",
 
     "authUrl": "auth url for swift",
@@ -321,6 +345,9 @@ Please be aware of the fact that the ``error_message`` field will not show up in
     "message": "restore successfully carried out",
     "state": "finished / name of the current phase",
     "error_message": "contains message dedicated to the occuring error, will not show up if empty",
+    "type": "S3",
+    "compression": true,
+    "skip_storage": false,
     "start_time": "YYYY-MM-DDTHH:MM:SS+00:00",
     "end_time": "YYYY-MM-DDTHH:MM:SS+00:00",
     "execution_time_ms": 42000,
@@ -338,6 +365,7 @@ Please be aware of the fact that the ``error_message`` field will not show up in
 ## Functionality ##
 The agent calls a predefined set of shell scripts in order to trigger the backup or restore procedure. Generally speaking there are three stages: Pre, Action, Post. 
 These files have to be located or will be placed in the respective directories set by the environment variables.
+The upload or download functionality can be skipped by using the skipStorage field in the respective request bodies. If this is the case, the destination information for the selected storage are set as environment variables for each script.
 
 #### Backup ####
 The agent runs following shell scripts from top to bottom:
