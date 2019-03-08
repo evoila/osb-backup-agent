@@ -16,14 +16,14 @@ import (
 
 var Directory = configuration.GetScriptsPath()
 
-func ExecuteScriptForStage(stageName string, jsonParams []string, params ...string) (found bool, logs string, errlogs string, err error) {
+func ExecuteScriptForStage(stageName string, destinationParams []string, jsonParams []string, params ...string) (found bool, logs string, errlogs string, err error) {
 	var fileName string
 	found, fileName = CheckForBothExistingFiles(Directory, stageName)
 	if !found {
 		return found, "", "", errors.New(errorlog.Concat([]string{"No script found for the ", stageName, " stage."}, ""))
 	}
 
-	out, errOut, err := ExecShellScript(GetPathToFile(Directory, fileName), jsonParams, params)
+	out, errOut, err := ExecShellScript(GetPathToFile(Directory, fileName), destinationParams, jsonParams, params)
 
 	if err != nil {
 		errorlog.LogError("Calling the shell script ", fileName,
@@ -37,7 +37,7 @@ func ExecuteScriptForStage(stageName string, jsonParams []string, params ...stri
 	return true, out.String(), errOut.String(), err
 }
 
-func ExecShellScript(path string, jsonParams []string, params []string) (bytes.Buffer, bytes.Buffer, error) {
+func ExecShellScript(path string, destinationParams []string, jsonParams []string, params []string) (bytes.Buffer, bytes.Buffer, error) {
 	log.Println("Executing the", path, "script.")
 
 	var cmd *exec.Cmd
@@ -62,7 +62,12 @@ func ExecShellScript(path string, jsonParams []string, params []string) (bytes.B
 
 	}
 
-	log.Println("Adding following environment variables to the execution environment:", jsonParams)
+	if len(destinationParams) > 0 {
+		log.Println("Adding destination information as environment variables to the execution environment. Please refer to previous logs during the job preparation to see which variables are added.")
+		addEnvVars(destinationParams, cmd)
+	}
+
+	log.Println("Adding following parameters as environment variables to the execution environment:", jsonParams)
 	addEnvVars(jsonParams, cmd)
 	cmd.Stdin = strings.NewReader("")
 	var out bytes.Buffer
@@ -138,6 +143,9 @@ func GetFileSize(path string) (int64, error) {
 func addEnvVars(params []string, cmd *exec.Cmd) {
 	// Currently not setting ENV VARs of the current os for the shells ! Only the given additional ones !
 	// cmd.Env = os.Environ()
+	if params == nil {
+		return
+	}
 	for _, param := range params {
 		cmd.Env = append(cmd.Env, param)
 	}

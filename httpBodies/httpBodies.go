@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/evoila/osb-backup-agent/errorlog"
 )
@@ -19,7 +20,9 @@ type BackupResponse struct {
 	ErrorMessage             string   `json:"error_message,omitempty"`
 	Type                     string   `json:"type"`
 	Compression              bool     `json:"compression"`
+	SkipStorage              bool     `json:"skip_storage"`
 	Region                   string   `json:"region,omitempty"`
+	Endpoint                 string   `json:"endpoint,omitempty"`
 	Bucket                   string   `json:"bucket,omitempty"`
 	AuthUrl                  string   `json:"authUrl,omitempty"`
 	Domain                   string   `json:"domain,omitempty"`
@@ -54,6 +57,7 @@ type RestoreResponse struct {
 	ErrorMessage              string `json:"error_message,omitempty"`
 	Type                      string `json:"type"`
 	Compression               bool   `json:"compression"`
+	SkipStorage               bool   `json:"skip_storage"`
 	StartTime                 string `json:"start_time"`
 	EndTime                   string `json:"end_time"`
 	ExecutionTime             int64  `json:"execution_time_ms"`
@@ -90,9 +94,12 @@ type RestoreBody struct {
 }
 
 type DestinationInformation struct {
-	Type       string
+	Type        string
+	SkipStorage bool
+
 	Bucket     string
 	Region     string
+	Endpoint   string
 	AuthKey    string
 	AuthSecret string
 	Filename   string
@@ -124,7 +131,9 @@ func PrintOutBackupBody(body BackupBody) {
 		errorlog.Concat([]string{"    \"encryption_key\" : \"", body.Encryption_key, "\",\n"}, ""),
 		"    \"destination\" : {\n",
 		errorlog.Concat([]string{"        \"type\" : \"", body.Destination.Type, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"skipStorage\" : \"", strconv.FormatBool(body.Destination.SkipStorage), "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"endpoint\" : \"", body.Destination.Endpoint, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"region\" : \"", body.Destination.Region, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authKey\" : \"", body.Destination.AuthKey, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authSecret\" : \"", authSecret, "\",\n"}, ""),
@@ -201,6 +210,9 @@ func CheckForMissingFieldDestinationInformation(body DestinationInformation, fil
 		if body.Bucket == "" {
 			missingFields += " bucket"
 		}
+		if body.SkipStorage && body.Endpoint == "" {
+			missingFields += " endpoint"
+		}
 		if body.Region == "" {
 			missingFields += " region"
 		}
@@ -266,7 +278,9 @@ func PrintOutRestoreBody(body RestoreBody) {
 		errorlog.Concat([]string{"    \"encryption_key\" : \"", privateEncryptionKey, "\",\n"}, ""),
 		"    \"destination\" : {\n",
 		errorlog.Concat([]string{"        \"type\" : \"", body.Destination.Type, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"skipStorage\" : \"", strconv.FormatBool(body.Destination.SkipStorage), "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"endpoint\" : \"", body.Destination.Endpoint, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"region\" : \"", body.Destination.Region, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authKey\" : \"", body.Destination.AuthKey, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authSecret\" : \"", authSecret, "\",\n"}, ""),
@@ -311,12 +325,53 @@ func getParametersAsLogStringSlice(parameters []map[string]interface{}) []string
 func GetParametersAsEnvVarStringSlice(parameters []map[string]interface{}) (envParameters []string) {
 	for _, entryValue := range parameters {
 		for key, value := range entryValue {
-			parsedValue := fmt.Sprintf("%s=%v", key, value)
+			parsedValue := getAsEnvVar(key, value)
 			log.Println("Parsed additional parameter:", parsedValue)
+			if strings.Contains(strings.ToLower(key), "secret") || strings.Contains(strings.ToLower(key), "password") {
+				log.Println("Parsed additional parameter:", key+"=[redacted]")
+			} else {
+				log.Println("Parsed additional parameter:", parsedValue)
+			}
 			envParameters = append(envParameters, parsedValue)
 		}
 	}
 	return
+}
+
+func getAsEnvVar(key string, value interface{}) string {
+	return fmt.Sprintf("%s=%v", key, value)
+}
+
+func GetDestinationInformationAsEnvVarStringSlice(skipStorage bool, body DestinationInformation) (envParameters []string) {
+	if !skipStorage {
+		return make([]string, 0)
+	}
+
+	if body.Type == "S3" {
+		list := make([]string, 5)
+		list[0] = getAsEnvVar(body.Type+"_BUCKET", body.Bucket)
+		list[1] = getAsEnvVar(body.Type+"_ENDPOINT", body.Region)
+		list[2] = getAsEnvVar(body.Type+"_REGION", body.Endpoint)
+		list[3] = getAsEnvVar(body.Type+"_AUTHKEY", body.AuthKey)
+		list[4] = getAsEnvVar(body.Type+"_AUTHSECRET", body.AuthSecret)
+
+		log.Println("Adding as destination information:", list[0], list[1], list[2], list[3], body.Type+"_AUTHSECRET=[redacted]")
+
+		return list
+	} else if body.Type == "SWIFT" {
+		list := make([]string, 6)
+		list[0] = getAsEnvVar(body.Type+"_AUTHURL", body.AuthUrl)
+		list[1] = getAsEnvVar(body.Type+"_DOMAIN", body.Domain)
+		list[2] = getAsEnvVar(body.Type+"_CONTAINERNAME", body.Container_name)
+		list[3] = getAsEnvVar(body.Type+"_PROJECTNAME", body.Project_name)
+		list[4] = getAsEnvVar(body.Type+"_USERNAME", body.Username)
+		list[5] = getAsEnvVar(body.Type+"_PASSWORD", body.Password)
+
+		log.Println("Adding as destination information:", list[0], list[1], list[2], list[3], list[4], body.Type+"_PASSWORD=[redacted]")
+		return list
+	} else {
+		return make([]string, 0)
+	}
 }
 
 func GetRedactedOrEmptyPasswordString(pw string) string {

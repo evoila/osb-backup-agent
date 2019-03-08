@@ -151,11 +151,15 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 	response.Message = "restore is running"
 	response.Status = httpBodies.Status_running
 	response.Type = body.Destination.Type
+	response.SkipStorage = body.Destination.SkipStorage
 	response.Compression = body.Compression
 	jobs.UpdateRestoreJob(body.Id, response)
 
 	// Set up variables for filling response bodies later on
 	var err error
+
+	// Get destination information as environment variables -> empty slice, if SkipStorage is false
+	var destinationInformation = httpBodies.GetDestinationInformationAsEnvVarStringSlice(body.Destination.SkipStorage, body.Destination)
 
 	// Get environment parameters from request body
 	var envParameters = httpBodies.GetParametersAsEnvVarStringSlice(body.Restore.Parameters)
@@ -174,7 +178,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 		jobs.UpdateRestoreJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.PreRestoreLockLog, response.PreRestoreLockErrorLog, err = shell.ExecuteScriptForStage(NamePreRestoreLock, envParameters, body.Id)
+		status, response.PreRestoreLockLog, response.PreRestoreLockErrorLog, err = shell.ExecuteScriptForStage(NamePreRestoreLock, destinationInformation, envParameters, body.Id)
 		jobs.UpdateRestoreJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
@@ -197,7 +201,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 			status = false
 			err = errorlog.LogError("Downloading from "+body.Destination.Type+" failed due to '", err.Error(), "'")
 		} else {
-			status, response.RestoreLog, response.RestoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, envParameters,
+			status, response.RestoreLog, response.RestoreErrorLog, err = shell.ExecuteScriptForStage(NameRestore, destinationInformation, envParameters,
 				body.Restore.Host, body.Restore.Username, body.Restore.Password, body.Restore.Database,
 				body.Destination.Filename, body.Id, strconv.FormatBool(body.Compression), body.Encryption_key)
 			jobs.UpdateRestoreJob(body.Id, response)
@@ -210,7 +214,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 		jobs.UpdateRestoreJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.RestoreCleanupLog, response.RestoreCleanupErrorLog, err = shell.ExecuteScriptForStage(NameRestoreCleanup, envParameters, body.Id)
+		status, response.RestoreCleanupLog, response.RestoreCleanupErrorLog, err = shell.ExecuteScriptForStage(NameRestoreCleanup, destinationInformation, envParameters, body.Id)
 		jobs.UpdateRestoreJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
@@ -219,7 +223,7 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 		jobs.UpdateRestoreJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.PostRestoreUnlockLog, response.PostRestoreUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostRestoreUnlock, envParameters)
+		status, response.PostRestoreUnlockLog, response.PostRestoreUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostRestoreUnlock, destinationInformation, envParameters)
 		jobs.UpdateRestoreJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
@@ -281,14 +285,18 @@ func download(body httpBodies.RestoreBody, downloadType string) error {
 			return errorlog.LogError("File already exists: ", path)
 		}
 	}
-	log.Println("Using file at", path)
+	log.Println("Using file destination at", path)
 
-	if downloadType == "S3" {
-		log.Println("Using S3 as destination.")
-		err = s3.DownloadFile(body.Destination.Filename, path, body)
+	if body.Destination.SkipStorage {
+		log.Println("skipStorage is true -> skipping download of restore file")
 	} else {
-		log.Println("Using swift as destination.")
-		err = swift.DownloadFile(body.Destination.Filename, path, body)
+		if downloadType == "S3" {
+			log.Println("Using S3 as destination.")
+			err = s3.DownloadFile(body.Destination.Filename, path, body)
+		} else {
+			log.Println("Using swift as destination.")
+			err = swift.DownloadFile(body.Destination.Filename, path, body)
+		}
 	}
 
 	return err

@@ -166,7 +166,9 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 	response.Type = body.Destination.Type
 	response.Compression = body.Compression
 	response.Status = httpBodies.Status_running
+	response.SkipStorage = body.Destination.SkipStorage
 	response.Bucket = body.Destination.Bucket
+	response.Endpoint = body.Destination.Endpoint
 	response.Region = body.Destination.Region
 	response.AuthUrl = body.Destination.AuthUrl
 	response.Domain = body.Destination.Domain
@@ -178,6 +180,9 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 	// Set up variables for filling response bodies later on
 	var fileSize int64
 	var err error
+
+	// Get destination information as environment variables -> empty slice, if SkipStorage is false
+	var destinationInformation = httpBodies.GetDestinationInformationAsEnvVarStringSlice(body.Destination.SkipStorage, body.Destination)
 
 	// Get environment parameters from request body
 	var envParameters = httpBodies.GetParametersAsEnvVarStringSlice(body.Backup.Parameters)
@@ -197,7 +202,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.PreBackupLockLog, response.PreBackupLockErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupLock, envParameters, body.Backup.Database)
+		status, response.PreBackupLockLog, response.PreBackupLockErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupLock, destinationInformation, envParameters, body.Backup.Database)
 		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
@@ -206,7 +211,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.PreBackupCheckLog, response.PreBackupCheckErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupCheck, envParameters, body.Backup.Database)
+		status, response.PreBackupCheckLog, response.PreBackupCheckErrorLog, err = shell.ExecuteScriptForStage(NamePreBackupCheck, destinationInformation, envParameters, body.Backup.Database)
 		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
@@ -216,18 +221,16 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 
 		log.Println("> Starting", response.State, "stage.")
 		var filename = GetBackupFilename(body.Backup.Host, body.Backup.Database)
-		status, response.BackupLog, response.BackupErrorLog, err = shell.ExecuteScriptForStage(NameBackup, envParameters,
+		status, response.BackupLog, response.BackupErrorLog, err = shell.ExecuteScriptForStage(NameBackup, destinationInformation, envParameters,
 			body.Backup.Host, body.Backup.Username, body.Backup.Password, body.Backup.Database, filename, body.Id, strconv.FormatBool(body.Compression), body.Encryption_key)
 		jobs.UpdateBackupJob(body.Id, response)
 		if err != nil {
 			status = false
 			err = errorlog.LogError("Executing the shell script failed due to '", err.Error(), "'")
 		} else {
-			if body.Destination.Type == "S3" {
+			if body.Destination.Type == "S3" || body.Destination.Type == "SWIFT" {
 				response.FileName, fileSize, err = upload(body, body.Destination.Type)
 				jobs.UpdateBackupJob(body.Id, response)
-			} else if body.Destination.Type == "SWIFT" {
-				response.FileName, fileSize, err = upload(body, body.Destination.Type)
 			} else {
 				status = false
 				err = errors.New("type is not supported")
@@ -248,7 +251,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.BackupCleanupLog, response.BackupCleanupErrorLog, err = shell.ExecuteScriptForStage(NameBackupCleanup, envParameters, body.Backup.Database, body.Id)
+		status, response.BackupCleanupLog, response.BackupCleanupErrorLog, err = shell.ExecuteScriptForStage(NameBackupCleanup, destinationInformation, envParameters, body.Backup.Database, body.Id)
 		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
@@ -257,7 +260,7 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		jobs.UpdateBackupJob(body.Id, response)
 
 		log.Println("> Starting", response.State, "stage.")
-		status, response.PostBackupUnlockLog, response.PostBackupUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostBackupUnlock, envParameters, body.Backup.Database)
+		status, response.PostBackupUnlockLog, response.PostBackupUnlockErrorLog, err = shell.ExecuteScriptForStage(NamePostBackupUnlock, destinationInformation, envParameters, body.Backup.Database)
 		jobs.UpdateBackupJob(body.Id, response)
 		log.Println("> Finishing", response.State, "stage.")
 	}
@@ -313,18 +316,22 @@ func upload(body httpBodies.BackupBody, uploadType string) (string, int64, error
 	}
 
 	path := backupDirectory + "/" + fileName
-	log.Println("Using file at", path)
+	log.Println("Using file destination at", path)
 	size, err := shell.GetFileSize(path)
 	if err != nil {
 		return fileName, 0, errorlog.LogError("Reading file size failed due to '", err.Error(), "'")
 	}
 
-	if uploadType == "S3" {
-		log.Println("Using S3 as destination.")
-		err = s3.UploadFile(fileName, path, body)
+	if body.Destination.SkipStorage {
+		log.Println("skipStorage is true -> skipping upload of backup file")
 	} else {
-		log.Println("Using swift as destination.")
-		err = swift.UploadFile(fileName, path, body)
+		if uploadType == "S3" {
+			log.Println("Using S3 as destination.")
+			err = s3.UploadFile(fileName, path, body)
+		} else {
+			log.Println("Using swift as destination.")
+			err = swift.UploadFile(fileName, path, body)
+		}
 	}
 
 	return fileName, size, err
