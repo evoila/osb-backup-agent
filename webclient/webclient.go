@@ -50,7 +50,7 @@ func setUpEndpoints(router *mux.Router) {
 	log.Println("DELETE /backup")
 	router.HandleFunc("/backup", backup.RemoveJob).Methods("DELETE")
 
-	log.Println("GET /restire/{id}")
+	log.Println("GET /restore/{id}")
 	router.HandleFunc("/restore/{id}", restore.HandlePolling).Methods("GET")
 	log.Println("PUT /restore")
 	router.HandleFunc("/restore", restore.HandleAsyncRequest).Methods("PUT")
