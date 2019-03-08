@@ -161,7 +161,7 @@ Furthermore will the compression and skipStorage fields default to false, if no 
     },
     "backup" : {
         "host": "host",
-        "user": "user",
+        "username": "username",
         "password": "password",
         "database": "database name",
         "parameters": [
@@ -190,7 +190,7 @@ Furthermore will the compression and skipStorage fields default to false, if no 
     },
     "backup" : {
         "host": "host",
-        "user": "user",
+        "username": "username",
         "password": "password",
         "database": "database name",
         "parameters": [
@@ -226,7 +226,7 @@ Furthermore will the compression and skipStorage fields default to false, if no 
     },
     "restore" : {
         "host": "host",
-        "user": "user",
+        "username": "username",
         "password": "password",
         "database": "database name",
         "parameters": [
@@ -256,7 +256,7 @@ Furthermore will the compression and skipStorage fields default to false, if no 
     },
     "restore" : {
         "host": "host",
-        "user": "user",
+        "username": "username",
         "password": "password",
         "database": "database name",
         "parameters": [
