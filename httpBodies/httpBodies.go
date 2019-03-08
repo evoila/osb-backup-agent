@@ -242,13 +242,13 @@ func CheckForMissingFieldsInDbInformation(body DbInformation) (bool, string) {
 	if body.Database == "" {
 		missingFields += " database"
 	}
-	if body.Database == "" {
+	if body.Host == "" {
 		missingFields += " host"
 	}
-	if body.Database == "" {
+	if body.Password == "" {
 		missingFields += " password"
 	}
-	if body.Database == "" {
+	if body.Username == "" {
 		missingFields += " username"
 	}
 	return missingFields == "", missingFields
