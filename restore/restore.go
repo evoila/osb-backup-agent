@@ -147,6 +147,11 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 	log.Println("Database", body.Restore.Database, "is supposed to get a restore.")
 	httpBodies.PrintOutRestoreBody(body)
 
+	if configuration.IsInstructedToSkipStorage() && !body.Destination.SkipStorage {
+		log.Println("SkipStorage is instructed via the configuration -> overwriting field in body")
+		body.Destination.SkipStorage = true
+	}
+
 	response, _ := jobs.GetRestoreJob(body.Id)
 	response.Message = "restore is running"
 	response.Status = httpBodies.Status_running

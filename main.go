@@ -25,6 +25,7 @@ func PrintOutConfig() {
 	var restoreDirectory = configuration.GetRestoreDirectory()
 	var scriptsPath = configuration.GetScriptsPath()
 	var allowedToDeleteFiles = configuration.IsAllowedToDeleteFiles()
+	var skipStorage = configuration.IsInstructedToSkipStorage()
 	log.Println("Using following configuration: ",
 		"\nclient_username :", username,
 		"\nclient_password :", pw,
@@ -32,6 +33,6 @@ func PrintOutConfig() {
 		"\ndirectory_backup :", backupDirectory,
 		"\ndirectory_restore :", restoreDirectory,
 		"\nscripts_path :", scriptsPath,
-		"\nallowed_to_delete_files :", allowedToDeleteFiles)
-
+		"\nallowed_to_delete_files :", allowedToDeleteFiles,
+		"\nskip_storage :", skipStorage)
 }

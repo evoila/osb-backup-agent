@@ -161,6 +161,11 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 	log.Println("Database", body.Backup.Database, "is supposed to get a new backup.")
 	httpBodies.PrintOutBackupBody(body)
 
+	if configuration.IsInstructedToSkipStorage() && !body.Destination.SkipStorage {
+		log.Println("SkipStorage is instructed via the configuration -> overwriting field in body")
+		body.Destination.SkipStorage = true
+	}
+
 	response, _ := jobs.GetBackupJob(body.Id)
 	response.Message = "backup is running"
 	response.Type = body.Destination.Type

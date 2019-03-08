@@ -47,6 +47,16 @@ func IsAllowedToDeleteFiles() bool {
 	return value
 }
 
+func IsInstructedToSkipStorage() bool {
+	stringedValue := getStringEnvVariableWithDefault("skip_storage", "false")
+	value, err := parseBool(stringedValue)
+	if err != nil {
+		log.Println("[ERROR]", "Could not parse '", stringedValue, "' -> setting to default 'false'")
+		value = false
+	}
+	return value
+}
+
 func GetMaxJobNumber() int {
 	stringedValue := getStringEnvVariableWithDefault("max_job_number", "10")
 	value := parseInt(stringedValue)
