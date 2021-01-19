@@ -1,8 +1,0 @@
-package: github.com/evoila/osb-backup-agent
-import:
-- package: github.com/aws/aws-sdk-go
-  subpackages:
-  - aws
-  - aws/session
-  - service/s3
-- package: github.com/gorilla/mux
