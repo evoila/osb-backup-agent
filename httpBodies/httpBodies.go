@@ -102,7 +102,9 @@ type DestinationInformation struct {
 	Endpoint   string
 	AuthKey    string
 	AuthSecret string
-	Filename   string
+	UseSSL     bool
+
+	Filename string
 
 	AuthUrl        string
 	Domain         string
@@ -137,6 +139,7 @@ func PrintOutBackupBody(body BackupBody) {
 		errorlog.Concat([]string{"        \"region\" : \"", body.Destination.Region, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authKey\" : \"", body.Destination.AuthKey, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authSecret\" : \"", authSecret, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"useSSL\" : \"", strconv.FormatBool(body.Destination.UseSSL), "\",\n"}, ""),
 		"\n",
 		errorlog.Concat([]string{"        \"authUrl\" : \"", body.Destination.AuthUrl, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"domain\" : \"", body.Destination.Domain, "\",\n"}, ""),
@@ -284,6 +287,7 @@ func PrintOutRestoreBody(body RestoreBody) {
 		errorlog.Concat([]string{"        \"region\" : \"", body.Destination.Region, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authKey\" : \"", body.Destination.AuthKey, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authSecret\" : \"", authSecret, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"useSSL\" : \"", strconv.FormatBool(body.Destination.UseSSL), "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"filename\" : \"", body.Destination.Filename, "\",\n"}, ""),
 		"\n",
 		errorlog.Concat([]string{"        \"authUrl\" : \"", body.Destination.AuthUrl, "\",\n"}, ""),
@@ -353,9 +357,10 @@ func GetDestinationInformationAsEnvVarStringSlice(skipStorage bool, body Destina
 		list[1] = getAsEnvVar(body.Type+"_ENDPOINT", body.Region)
 		list[2] = getAsEnvVar(body.Type+"_REGION", body.Endpoint)
 		list[3] = getAsEnvVar(body.Type+"_AUTHKEY", body.AuthKey)
-		list[4] = getAsEnvVar(body.Type+"_AUTHSECRET", body.AuthSecret)
+		list[4] = getAsEnvVar(body.Type+"_USESSL", body.UseSSL)
+		list[5] = getAsEnvVar(body.Type+"_AUTHSECRET", body.AuthSecret)
 
-		log.Println("Adding as destination information:", list[0], list[1], list[2], list[3], body.Type+"_AUTHSECRET=[redacted]")
+		log.Println("Adding as destination information:", list[0], list[1], list[2], list[3], list[4], body.Type+"_AUTHSECRET=[redacted]")
 
 		return list
 	} else if body.Type == "SWIFT" {

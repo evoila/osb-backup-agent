@@ -141,7 +141,7 @@ See Backup Job Deletion Status Codes and their meaning
 ### Trigger Backup Body ###
 Fields that are not dedicated to the chosen type will be ignored.
 Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the scripts to work with. **Be aware that the parameters are logged on the console of the agent! Do not use sensitive data, if you do not want to have it logged!** 
-Furthermore will the compression and skipStorage fields default to false, if no explicit value is present.
+Furthermore will the compression, useSSL and skipStorage fields default to false, if no explicit value is present.
 
 #### S3
 ```json
@@ -154,8 +154,8 @@ Furthermore will the compression and skipStorage fields default to false, if no 
         "skipStorage" : false,
 
         "bucket": "bucketName",
-        "endpoint" : "http://custom.s3.endpoint (only needed if skipStorage is true)",
-        "region": "regionName",
+        "endpoint" : "http://custom.s3.endpoint",
+        "useSSL" : true,
         "authKey": "key",
         "authSecret": "secret",
     },
@@ -205,7 +205,7 @@ Furthermore will the compression and skipStorage fields default to false, if no 
 
 ### Trigger Restore Body ###
 Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the shell scripts to work with. **Be aware that the parameters are logged on the console of the agent! Do not use sensitive data, if you do not want to have it logged!**
-Furthermore will the compression and skipStorage fields default to false, if no explicit value is present.
+Furthermore will the compression, skipStorage and useSSL fields default to false, if no explicit value is present.
 
 #### S3
 ```json
@@ -219,8 +219,8 @@ Furthermore will the compression and skipStorage fields default to false, if no 
         "filename": "filename",
 
         "bucket": "bucketName",
-        "endpoint" : "http://custom.s3.endpoint (only needed if skipStorage is true)",
-        "region": "regionName",
+        "endpoint" : "http://custom.s3.endpoint",
+        "useSSL": true,
         "authKey": "key",
         "authSecret": "secret",
     },
@@ -308,6 +308,7 @@ Please be aware of the fact that the ``error_message`` field will not show up in
 
     "compression": true,
     "skip_storage": false,
+    "useSSL": false,
 
     "region": "S3 region",
     "endpoint" : "S3 endpoint",
@@ -351,6 +352,7 @@ Please be aware of the fact that the ``error_message`` field will not show up in
     "type": "S3",
     "compression": true,
     "skip_storage": false,
+    "useSSL": false,
     "start_time": "YYYY-MM-DDTHH:MM:SS+00:00",
     "end_time": "YYYY-MM-DDTHH:MM:SS+00:00",
     "execution_time_ms": 42000,
@@ -396,7 +398,7 @@ The agent runs following shell scripts from top to bottom:
 - `backup-cleanup`
 - `post-backup-unlock`
 
-In the backup stage, the agent generates a name (consists of `YYYY_MM_DD_HH_MM_<host>_<dbname>`) for the backup file and forwards its path (`backup_directory/job_id/generated_file_name`) to the back script. After the script generated the file to upload, the agent uploads the first encountered file in the dedicated directory (`backup_directory/<job_id>`) to the cloud storage using the given information and credentials.
+In the backup stage, the agent generates a name (consists of `YYYY_MM_DD_HH_MM_<host>_<dbname>`) for the backup file and forwards its path (`backup_directory/<job_id>/<generated_file_name>`) to the back script. After the script generated the file to upload, the agent uploads the first encountered file in the dedicated directory (`backup_directory/<job_id>`) to the cloud storage using the given information and credentials.
 
 ##### Script Parameters #####
 - `pre-backup-lock databasename`
