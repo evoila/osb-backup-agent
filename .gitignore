@@ -1,11 +1,8 @@
 buildAndRun.bat
 debug
-go-backup-agent.exe
 testscripts/pre-backup-lock.sh
 vendor/
-testBackups/
-testscripts/
-testRestores/
+local_dev_folder
 osb-backup-agent.exe
 .vscode/
 buildAndStart.sh
