@@ -18,15 +18,18 @@ func SetUpS3() {
 	sessionMutex.Release()
 }
 
-// getSession creates a AWS S3 session with the provided credentials.
-// The ENV VARs are set and cleared in this method.
+// getClient creates a S3 client with the provided credentials.
 // A mutex regulates access to the credentials and ensures the creation of the session with the correct credentials.
-func getClient(endpoint, authkey, authSecret string, useSSL bool) (*minio.Client, error) {
+func getClient(endpoint, authkey, authSecret, region string, useSSL bool) (*minio.Client, error) {
 	sessionMutex.Acquire()
 
-	minioClient, err := minio.New(endpoint, &minio.Options{
+	var minioClient *minio.Client
+	var err error
+
+	minioClient, err = minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(authkey, authSecret, ""),
 		Secure: useSSL,
+		Region: region, // setting a region here overwrites the clients selfidentification process of the region -> to use "" is valid here
 	})
 
 	sessionMutex.Release()
@@ -39,7 +42,7 @@ func UploadFile(filename, path string, body httpBodies.BackupBody) error {
 	ctx := context.Background()
 
 	// -- Initialize client object --
-	minioClient, err := getClient(body.Destination.Endpoint, body.Destination.AuthKey, body.Destination.AuthSecret, body.Destination.UseSSL)
+	minioClient, err := getClient(body.Destination.Endpoint, body.Destination.AuthKey, body.Destination.AuthSecret, body.Destination.Region, body.Destination.UseSSL)
 	if err != nil {
 		return errorlog.LogError("Unable to create a S3 session due to '", err.Error(), "'")
 	}
@@ -70,7 +73,7 @@ func DownloadFile(filename, path string, body httpBodies.RestoreBody) error {
 	ctx := context.Background()
 
 	// -- Initialize client object --
-	minioClient, err := getClient(body.Destination.Endpoint, body.Destination.AuthKey, body.Destination.AuthSecret, body.Destination.UseSSL)
+	minioClient, err := getClient(body.Destination.Endpoint, body.Destination.AuthKey, body.Destination.AuthSecret, body.Destination.Region, body.Destination.UseSSL)
 	if err != nil {
 		return errorlog.LogError("Unable to create a S3 session due to '", err.Error(), "'")
 	}

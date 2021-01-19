@@ -54,12 +54,19 @@ The agent supports http endpoints for status, backup and restore. These endpoint
 ## Functionality ##
 The agent calls a predefined set of shell scripts in order to trigger the backup or restore procedure. Generally speaking there are three stages: Pre, Action, Post. 
 These files have to be located or will be placed in the respective directories set by the environment variables.
+
+**Note**:
+The osb-backup-agent does **not** store any information in a persistent way! All information are stored in memory and are thereby ephemeral.
+
 The upload or download functionality can be skipped by using the `skipStorage` field in the respective request bodies or via the configuration property `skip_storage`. If this is the case, the destination information for the selected storage are set as environment variables for each script.
+
+
 
 |Environment variable key for S3| Field in destination body|
 |----|----|
 |S3_BUCKET|bucket|
 |S3_ENDPOINT|endpoint|
+|S§_REGION|region|
 |S3_AUTHKEY|authKey|
 |S3_AUTHSECRET|authSecret|
 |S3_USESSL|useSSL|

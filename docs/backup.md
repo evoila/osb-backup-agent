@@ -32,6 +32,7 @@ Furthermore will the compression, useSSL and skipStorage fields default to false
         "skipStorage" : false,
 
         "bucket": "bucketName",
+        "region": "S3 region -> depending on the S3 server, this can be empty",
         "endpoint" : "http://custom.s3.endpoint",
         "useSSL" : true,
         "authKey": "key",
@@ -113,6 +114,7 @@ Please be aware of the fact that the ``error_message`` field will not show up in
 
     "endpoint" : "S3 endpoint",
     "bucket": "S3 bucket",
+    "region": "S3 region",
 
     "authUrl": "auth url for swift",
     "domain": "domain name for swift",
