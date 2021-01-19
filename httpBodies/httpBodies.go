@@ -21,7 +21,6 @@ type BackupResponse struct {
 	Type                     string   `json:"type"`
 	Compression              bool     `json:"compression"`
 	SkipStorage              bool     `json:"skip_storage"`
-	Region                   string   `json:"region,omitempty"`
 	Endpoint                 string   `json:"endpoint,omitempty"`
 	Bucket                   string   `json:"bucket,omitempty"`
 	AuthUrl                  string   `json:"authUrl,omitempty"`
@@ -98,7 +97,6 @@ type DestinationInformation struct {
 	SkipStorage bool
 
 	Bucket     string
-	Region     string
 	Endpoint   string
 	AuthKey    string
 	AuthSecret string
@@ -136,7 +134,6 @@ func PrintOutBackupBody(body BackupBody) {
 		errorlog.Concat([]string{"        \"skipStorage\" : \"", strconv.FormatBool(body.Destination.SkipStorage), "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"endpoint\" : \"", body.Destination.Endpoint, "\",\n"}, ""),
-		errorlog.Concat([]string{"        \"region\" : \"", body.Destination.Region, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authKey\" : \"", body.Destination.AuthKey, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authSecret\" : \"", authSecret, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"useSSL\" : \"", strconv.FormatBool(body.Destination.UseSSL), "\",\n"}, ""),
@@ -216,9 +213,6 @@ func CheckForMissingFieldDestinationInformation(body DestinationInformation, fil
 		if body.SkipStorage && body.Endpoint == "" {
 			missingFields += " endpoint"
 		}
-		if body.Region == "" {
-			missingFields += " region"
-		}
 		if body.Filename == "" && !fileCanBeMissing {
 			missingFields += " filename"
 		}
@@ -284,7 +278,6 @@ func PrintOutRestoreBody(body RestoreBody) {
 		errorlog.Concat([]string{"        \"skipStorage\" : \"", strconv.FormatBool(body.Destination.SkipStorage), "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"bucket\" : \"", body.Destination.Bucket, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"endpoint\" : \"", body.Destination.Endpoint, "\",\n"}, ""),
-		errorlog.Concat([]string{"        \"region\" : \"", body.Destination.Region, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authKey\" : \"", body.Destination.AuthKey, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authSecret\" : \"", authSecret, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"useSSL\" : \"", strconv.FormatBool(body.Destination.UseSSL), "\",\n"}, ""),
@@ -354,13 +347,12 @@ func GetDestinationInformationAsEnvVarStringSlice(skipStorage bool, body Destina
 	if body.Type == "S3" {
 		list := make([]string, 5)
 		list[0] = getAsEnvVar(body.Type+"_BUCKET", body.Bucket)
-		list[1] = getAsEnvVar(body.Type+"_ENDPOINT", body.Region)
-		list[2] = getAsEnvVar(body.Type+"_REGION", body.Endpoint)
-		list[3] = getAsEnvVar(body.Type+"_AUTHKEY", body.AuthKey)
-		list[4] = getAsEnvVar(body.Type+"_USESSL", body.UseSSL)
-		list[5] = getAsEnvVar(body.Type+"_AUTHSECRET", body.AuthSecret)
+		list[1] = getAsEnvVar(body.Type+"_ENDPOINT", body.Endpoint)
+		list[2] = getAsEnvVar(body.Type+"_AUTHKEY", body.AuthKey)
+		list[3] = getAsEnvVar(body.Type+"_USESSL", body.UseSSL)
+		list[4] = getAsEnvVar(body.Type+"_AUTHSECRET", body.AuthSecret)
 
-		log.Println("Adding as destination information:", list[0], list[1], list[2], list[3], list[4], body.Type+"_AUTHSECRET=[redacted]")
+		log.Println("Adding as destination information:", list[0], list[1], list[2], list[3], body.Type+"_AUTHSECRET=[redacted]")
 
 		return list
 	} else if body.Type == "SWIFT" {

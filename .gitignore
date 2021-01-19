@@ -8,3 +8,4 @@ testscripts/
 testRestores/
 osb-backup-agent.exe
 .vscode/
+buildAndStart.sh

@@ -174,7 +174,6 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 	response.SkipStorage = body.Destination.SkipStorage
 	response.Bucket = body.Destination.Bucket
 	response.Endpoint = body.Destination.Endpoint
-	response.Region = body.Destination.Region
 	response.AuthUrl = body.Destination.AuthUrl
 	response.Domain = body.Destination.Domain
 	response.ContainerName = body.Destination.Container_name
