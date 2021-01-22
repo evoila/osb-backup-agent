@@ -66,7 +66,7 @@ The upload or download functionality can be skipped by using the `skipStorage` f
 |----|----|
 |S3_BUCKET|bucket|
 |S3_ENDPOINT|endpoint|
-|S§_REGION|region|
+|S3_REGION|region|
 |S3_AUTHKEY|authKey|
 |S3_AUTHSECRET|authSecret|
 |S3_USESSL|useSSL|
