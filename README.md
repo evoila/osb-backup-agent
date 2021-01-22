@@ -34,6 +34,7 @@ The agent uses environment variables to configurate its parameters.
 | scrips_path | /tmp/scrips | The directory in which the agent will look for the backup scrips. Defaults to `/var/vcap/jobs/backup-agent/backup`  |
 | allowed_to_delete_files | true | Flag for permission to delete already existing files. Defaults to `false`. | 
 | skip_storage | true | Flag for instruction to skip upload and download. Defaults to `false`. | 
+| default_s3_endpoint | 127.0.0.1 | The endpoint, which the agent uses for S3 actions when no endpoint is given in the request body. Defaults to `s3.amazonaws.com`. | 
 | max_job_number | 10 | Maximum number of running jobs at a time. Defaults to 10. |
 
 
@@ -69,7 +70,7 @@ The upload or download functionality can be skipped by using the `skipStorage` f
 |S3_REGION|region|
 |S3_AUTHKEY|authKey|
 |S3_AUTHSECRET|authSecret|
-|S3_USESSL|useSSL|
+|S3_SKIPSSL|skipSSL|
 
 |Environment variable key for SWIFT| Field in destination body|
 |----|----|

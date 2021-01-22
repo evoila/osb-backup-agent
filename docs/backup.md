@@ -19,7 +19,7 @@ Endpoint: POST /backup
 ### Trigger Backup Request Body ###
 Fields that are not dedicated to the chosen type will be ignored.
 Please note that objects in the parameters object can not have nested objects, arrays, lists, maps and so on inside. Only use simple types here as these values will be set as environment variables for the scripts to work with. **Be aware that the parameters are logged on the console of the agent! Do not use sensitive data, if you do not want to have it logged!** 
-Furthermore will the compression, useSSL and skipStorage fields default to false, if no explicit value is present.
+Furthermore will the compression, skipSSL and skipStorage fields default to false, if no explicit value is present.
 
 #### S3
 ```json
@@ -33,8 +33,8 @@ Furthermore will the compression, useSSL and skipStorage fields default to false
 
         "bucket": "bucketName",
         "region": "S3 region -> depending on the S3 server, this can be empty",
-        "endpoint" : "http://custom.s3.endpoint",
-        "useSSL" : true,
+        "endpoint" : "http://custom.s3.endpoint -> defaults to the agents 'default_s3_endpoint' config parameter, if field is empty",
+        "skipSSL" : false,
         "authKey": "key",
         "authSecret": "secret",
     },

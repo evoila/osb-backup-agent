@@ -42,7 +42,7 @@ func UploadFile(filename, path string, body httpBodies.BackupBody) error {
 	ctx := context.Background()
 
 	// -- Initialize client object --
-	minioClient, err := getClient(body.Destination.Endpoint, body.Destination.AuthKey, body.Destination.AuthSecret, body.Destination.Region, body.Destination.UseSSL)
+	minioClient, err := getClient(body.Destination.Endpoint, body.Destination.AuthKey, body.Destination.AuthSecret, body.Destination.Region, !body.Destination.SkipSSL)
 	if err != nil {
 		return errorlog.LogError("Unable to create a S3 session due to '", err.Error(), "'")
 	}
@@ -73,7 +73,7 @@ func DownloadFile(filename, path string, body httpBodies.RestoreBody) error {
 	ctx := context.Background()
 
 	// -- Initialize client object --
-	minioClient, err := getClient(body.Destination.Endpoint, body.Destination.AuthKey, body.Destination.AuthSecret, body.Destination.Region, body.Destination.UseSSL)
+	minioClient, err := getClient(body.Destination.Endpoint, body.Destination.AuthKey, body.Destination.AuthSecret, body.Destination.Region, !body.Destination.SkipSSL)
 	if err != nil {
 		return errorlog.LogError("Unable to create a S3 session due to '", err.Error(), "'")
 	}

@@ -152,10 +152,16 @@ func Restore(body httpBodies.RestoreBody, job *httpBodies.RestoreResponse) *http
 		body.Destination.SkipStorage = true
 	}
 
+	// Set default S3 endpoint if value is empty
+	if body.Destination.Type == "S3" && body.Destination.Endpoint == "" {
+		body.Destination.Endpoint = configuration.GetDefaultS3Endpoint()
+	}
+
 	response, _ := jobs.GetRestoreJob(body.Id)
 	response.Message = "restore is running"
 	response.Status = httpBodies.Status_running
 	response.Type = body.Destination.Type
+	response.SkipSSL = body.Destination.SkipSSL
 	response.SkipStorage = body.Destination.SkipStorage
 	response.Compression = body.Compression
 	jobs.UpdateRestoreJob(body.Id, response)

@@ -57,6 +57,10 @@ func IsInstructedToSkipStorage() bool {
 	return value
 }
 
+func GetDefaultS3Endpoint() string {
+	return getStringEnvVariableWithDefault("default_s3_endpoint", "s3.amazonaws.com")
+}
+
 func GetMaxJobNumber() int {
 	stringedValue := getStringEnvVariableWithDefault("max_job_number", "10")
 	value := parseInt(stringedValue)

@@ -166,11 +166,17 @@ func Backup(body httpBodies.BackupBody, job *httpBodies.BackupResponse) *httpBod
 		body.Destination.SkipStorage = true
 	}
 
+	// Set default S3 endpoint if value is empty
+	if body.Destination.Type == "S3" && body.Destination.Endpoint == "" {
+		body.Destination.Endpoint = configuration.GetDefaultS3Endpoint()
+	}
+
 	response, _ := jobs.GetBackupJob(body.Id)
 	response.Message = "backup is running"
 	response.Type = body.Destination.Type
 	response.Compression = body.Compression
 	response.Status = httpBodies.Status_running
+	response.SkipSSL = body.Destination.SkipSSL
 	response.SkipStorage = body.Destination.SkipStorage
 	response.Bucket = body.Destination.Bucket
 	response.Endpoint = body.Destination.Endpoint
