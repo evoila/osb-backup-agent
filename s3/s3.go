@@ -53,7 +53,7 @@ func UploadFile(filename, path string, body httpBodies.BackupBody) error {
 	if err == nil && exists {
 		log.Println("Bucket", body.Destination.Bucket, "exists and used user owns it.")
 	} else if err == nil && !exists {
-		return errorlog.LogError("S3 bucket seems not to exist due to '", err.Error(), "'")
+		return errorlog.LogError("S3 bucket seems not to exist.")
 	} else if err != nil {
 		return errorlog.LogError("Failed to check S3 bucket existance due to '", err.Error(), "'")
 	}
