@@ -33,7 +33,7 @@ Furthermore will the compression, skipSSL and skipStorage fields default to fals
 
         "bucket": "bucketName",
         "region": "S3 region -> depending on the S3 server, this can be empty",
-        "endpoint" : "http://custom.s3.endpoint -> defaults to the agents 'default_s3_endpoint' config parameter, if field is empty",
+        "endpoint" : "custom.s3.endpoint -> defaults to the agents 'default_s3_endpoint' config parameter, if field is empty",
         "skipSSL" : false,
         "authKey": "key",
         "authSecret": "secret",
