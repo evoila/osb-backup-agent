@@ -99,6 +99,7 @@ func DownloadFile(filename, path string, body httpBodies.RestoreBody) error {
 		return errorlog.LogError("Failed to check S3 bucket existance due to '", err.Error(), "'")
 	}
 
+	// -- Downloading the restore file from the given bucket --
 	err = minioClient.FGetObject(ctx, body.Destination.Bucket, filename, path, minio.GetObjectOptions{})
 	if err != nil {
 		return errorlog.LogError("Failed to download from S3 due to '", err.Error(), "'")
