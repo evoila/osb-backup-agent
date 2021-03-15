@@ -8,23 +8,13 @@ import (
 
 	"github.com/evoila/osb-backup-agent/errorlog"
 	"github.com/evoila/osb-backup-agent/httpBodies"
-	"github.com/evoila/osb-backup-agent/mutex"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-var sessionMutex mutex.Mutex
-
-func SetUpS3() {
-	sessionMutex = make(mutex.Mutex, 1)
-	sessionMutex.Release()
-}
-
 // getClient creates a S3 client with the provided credentials.
 // A mutex regulates access to the credentials and ensures the creation of the session with the correct credentials.
 func getClient(endpoint, authkey, authSecret, region string, useSSL bool) (*minio.Client, error) {
-	sessionMutex.Acquire()
-
 	var minioClient *minio.Client
 	var err error
 
@@ -53,8 +43,6 @@ func getClient(endpoint, authkey, authSecret, region string, useSSL bool) (*mini
 		Secure: useSSL,
 		Region: region, // setting a region here overwrites the clients selfidentification process of the region -> to use "" is valid here
 	})
-
-	sessionMutex.Release()
 
 	return minioClient, err
 }
