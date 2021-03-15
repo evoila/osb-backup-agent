@@ -26,6 +26,7 @@ func PrintOutConfig() {
 	var scriptsPath = configuration.GetScriptsPath()
 	var allowedToDeleteFiles = configuration.IsAllowedToDeleteFiles()
 	var skipStorage = configuration.IsInstructedToSkipStorage()
+	var maxJobNumber = configuration.GetMaxJobNumber()
 	log.Println("Using following configuration: ",
 		"\nclient_username :", username,
 		"\nclient_password :", pw,
@@ -34,5 +35,6 @@ func PrintOutConfig() {
 		"\ndirectory_restore :", restoreDirectory,
 		"\nscripts_path :", scriptsPath,
 		"\nallowed_to_delete_files :", allowedToDeleteFiles,
-		"\nskip_storage :", skipStorage)
+		"\nskip_storage :", skipStorage,
+		"\nmax_job_number :", maxJobNumber)
 }
