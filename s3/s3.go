@@ -3,6 +3,8 @@ package s3
 import (
 	"context"
 	"log"
+	"net/url"
+	"strings"
 
 	"github.com/evoila/osb-backup-agent/errorlog"
 	"github.com/evoila/osb-backup-agent/httpBodies"
@@ -25,6 +27,26 @@ func getClient(endpoint, authkey, authSecret, region string, useSSL bool) (*mini
 
 	var minioClient *minio.Client
 	var err error
+
+	// --- The minio client can not handle an endpoint with a scheme (for example https://my.s3.server -> 'https://'), so we need to remove the scheme before using the URL ---
+	endpointURL, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, errorlog.LogError("Unable to parse endpoint URL due to: '", err.Error(), "'")
+	}
+	if endpointURL.Scheme != "" {
+		log.Println("Endpoint '" + endpoint + "' contains http(s) scheme, therefore trying to split URL and scheme.")
+		endpointWithoutScheme := strings.Split(endpoint, endpointURL.Scheme+"://")
+		endpoint = endpointWithoutScheme[1] // First element is "", because there are (or rather should be) no characters before the scheme.
+		log.Println("Successfully split. Now using", endpoint, "as new endpoint.")
+
+		// --- If scheme of the endpoint conflicts with the given useSSL boolean, we can not guess, which one the user wants to use
+		if endpointURL.Scheme == "http" && useSSL {
+			return nil, errorlog.LogError("The given endpoint contains the scheme 'http', but the requests dictates 'https'.")
+		}
+		if endpointURL.Scheme == "https" && !useSSL {
+			return nil, errorlog.LogError("The given endpoint contains the scheme 'https', but the requests dictates 'http'.")
+		}
+	}
 
 	minioClient, err = minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(authkey, authSecret, ""),
