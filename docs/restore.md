@@ -34,6 +34,7 @@ Furthermore will the compression, skipSSL and skipStorage fields default to fals
         "skipStorage" : false,
         "filename": "filename",
 
+        "filenamePrefix" : "my-prefix/ -> prefix to use for the s3 file upload. must end with '/'",
         "bucket": "bucketName",
         "endpoint" : "custom.s3.endpoint -> defaults to the agents 'default_s3_endpoint' config parameter, if field is empty",
         "skipSSL": false,

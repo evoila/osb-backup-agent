@@ -37,6 +37,8 @@ Furthermore will the compression, skipSSL and skipStorage fields default to fals
         "skipSSL" : false,
         "authKey": "key",
         "authSecret": "secret",
+
+        "filenamePrefix" : "my-prefix/ -> prefix to use for the s3 file upload. must end with '/'"
     },
     "backup" : {
         "host": "host",
@@ -121,6 +123,7 @@ Please be aware of the fact that the ``error_message`` field will not show up in
     "container_name": "name of the container for swift",
     "project_name": "name of the project for swift",
 
+    "filenamePrefix" : "prefix for s3 file",
     "filename": "host_YYYY_MM_DD_database.tar.gz",
     "filesize": {
         "size": 42,
