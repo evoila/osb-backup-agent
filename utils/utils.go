@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/evoila/osb-backup-agent/errorlog"
 	"github.com/evoila/osb-backup-agent/httpBodies"
@@ -87,6 +88,18 @@ func IsAllowedToSpawnNewJob(w http.ResponseWriter, r *http.Request) bool {
 		var response = httpBodies.ErrorResponse{Message: "Failed to start a new job.", ErrorMessage: "Spawing a new job would break the allowed running job limit.", State: "Job reservation"}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(429)
+		json.NewEncoder(w).Encode(response)
+		return false
+	}
+	return true
+}
+
+func IsS3AndPrefixDoesNotEndWithSlash(w http.ResponseWriter, r *http.Request, body httpBodies.DestinationInformation) bool {
+	if body.Type == "S3" && body.FilenamePrefix != "" && !strings.HasSuffix(body.FilenamePrefix, "/") {
+		err := errorlog.LogError("Failed during body deserialization due to '", "FilenamePrefix does not end with '/' but has to.", "'")
+		var response = httpBodies.ErrorResponse{Message: httpBodies.Status_failed, ErrorMessage: err.Error(), State: "File Destination Parsing"}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
 		json.NewEncoder(w).Encode(response)
 		return false
 	}
