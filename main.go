@@ -2,12 +2,19 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/evoila/osb-backup-agent/configuration"
+	"github.com/evoila/osb-backup-agent/errorlog"
 	"github.com/evoila/osb-backup-agent/webclient"
 )
 
 func main() {
+
+	// Default logs in Golang are written onto stderr -> changing it here at the very start
+	log.SetOutput(os.Stdout)
+	// errorlog package uses its own log.Logger
+	errorlog.InitErrorLog()
 
 	log.Println("Go-backup-agent is starting...")
 	PrintOutConfig()

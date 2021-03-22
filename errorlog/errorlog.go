@@ -3,13 +3,20 @@ package errorlog
 import (
 	"errors"
 	"log"
+	"os"
 	"strings"
 )
+
+var errorLogger *log.Logger
+
+func InitErrorLog() {
+	errorLogger = log.New(os.Stderr, log.Default().Prefix(), log.Default().Flags())
+}
 
 func LogError(params ...string) error {
 	if len(params) > 0 {
 		var message = Concat(params, "")
-		log.Println("[ERROR]", message)
+		errorLogger.Println("[ERROR]", message)
 		return errors.New(message)
 	}
 	return nil
