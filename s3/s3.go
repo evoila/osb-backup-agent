@@ -69,11 +69,11 @@ func UploadFile(filename, path string, body httpBodies.BackupBody) error {
 	}
 
 	// -- Uploading the backup file to the given bucket --
-	uploadInfo, err := minioClient.FPutObject(ctx, body.Destination.Bucket, filename, path, minio.PutObjectOptions{})
+	uploadInfo, err := minioClient.FPutObject(ctx, body.Destination.Bucket, body.Destination.FilenamePrefix+filename, path, minio.PutObjectOptions{})
 	if err != nil {
 		return errorlog.LogError("Failed to upload to S3 due to '", err.Error(), "'")
 	}
-	log.Printf("Successfully uploaded %s of size %d to bucket %s\n", filename, uploadInfo.Size, uploadInfo.Bucket)
+	log.Printf("Successfully uploaded %s with prefix %s of size %d to bucket %s\n", filename, body.Destination.FilenamePrefix, uploadInfo.Size, uploadInfo.Bucket)
 
 	return nil
 }
@@ -100,11 +100,12 @@ func DownloadFile(filename, path string, body httpBodies.RestoreBody) error {
 	}
 
 	// -- Downloading the restore file from the given bucket --
-	err = minioClient.FGetObject(ctx, body.Destination.Bucket, filename, path, minio.GetObjectOptions{})
+	log.Printf("Trying to download file %s with prefix %s from bucket %s\n", filename, body.Destination.FilenamePrefix, body.Destination.Bucket)
+	err = minioClient.FGetObject(ctx, body.Destination.Bucket, body.Destination.FilenamePrefix+filename, path, minio.GetObjectOptions{})
 	if err != nil {
 		return errorlog.LogError("Failed to download from S3 due to '", err.Error(), "'")
 	}
-	log.Printf("Successfully downloaded %s from bucket %s\n", filename, body.Destination.Bucket)
+	log.Printf("Successfully downloaded %s with prefix %s from bucket %s\n", filename, body.Destination.FilenamePrefix, body.Destination.Bucket)
 
 	return nil
 }

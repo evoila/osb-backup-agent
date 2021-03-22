@@ -30,6 +30,7 @@ type BackupResponse struct {
 	ContainerName            string   `json:"container_name,omitempty"`
 	ProjectName              string   `json:"project_name,omitempty"`
 	FileName                 string   `json:"filename"`
+	FilenamePrefix           string   `json:"filenamePrefix"`
 	FileSize                 FileSize `json:"filesize"`
 	StartTime                string   `json:"start_time"`
 	EndTime                  string   `json:"end_time"`
@@ -106,7 +107,8 @@ type DestinationInformation struct {
 	AuthSecret string
 	SkipSSL    bool
 
-	Filename string
+	FilenamePrefix string
+	Filename       string
 
 	AuthUrl        string
 	Domain         string
@@ -142,6 +144,7 @@ func PrintOutBackupBody(body BackupBody) {
 		errorlog.Concat([]string{"        \"authKey\" : \"", body.Destination.AuthKey, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"authSecret\" : \"", authSecret, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"skipSSL\" : \"", strconv.FormatBool(body.Destination.SkipSSL), "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"filenamePrefix\" : \"", body.Destination.FilenamePrefix, "\",\n"}, ""),
 		"\n",
 		errorlog.Concat([]string{"        \"authUrl\" : \"", body.Destination.AuthUrl, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"domain\" : \"", body.Destination.Domain, "\",\n"}, ""),
@@ -221,6 +224,9 @@ func CheckForMissingFieldDestinationInformation(body DestinationInformation, fil
 		if body.Filename == "" && !fileCanBeMissing {
 			missingFields += " filename"
 		}
+		if body.FilenamePrefix == "" {
+			missingFields += " filenamePrefix"
+		}
 		return missingFields == "", missingFields
 	} else if body.Type == "SWIFT" {
 		if body.AuthUrl == "" {
@@ -288,6 +294,7 @@ func PrintOutRestoreBody(body RestoreBody) {
 		errorlog.Concat([]string{"        \"authSecret\" : \"", authSecret, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"skipSSL\" : \"", strconv.FormatBool(body.Destination.SkipSSL), "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"filename\" : \"", body.Destination.Filename, "\",\n"}, ""),
+		errorlog.Concat([]string{"        \"filenamePrefix\" : \"", body.Destination.FilenamePrefix, "\",\n"}, ""),
 		"\n",
 		errorlog.Concat([]string{"        \"authUrl\" : \"", body.Destination.AuthUrl, "\",\n"}, ""),
 		errorlog.Concat([]string{"        \"domain\" : \"", body.Destination.Domain, "\",\n"}, ""),

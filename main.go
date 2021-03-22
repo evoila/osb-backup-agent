@@ -27,6 +27,7 @@ func PrintOutConfig() {
 	var allowedToDeleteFiles = configuration.IsAllowedToDeleteFiles()
 	var skipStorage = configuration.IsInstructedToSkipStorage()
 	var maxJobNumber = configuration.GetMaxJobNumber()
+	var defaultS3Endpoint = configuration.GetDefaultS3Endpoint()
 	log.Println("Using following configuration: ",
 		"\nclient_username :", username,
 		"\nclient_password :", pw,
@@ -36,5 +37,6 @@ func PrintOutConfig() {
 		"\nscripts_path :", scriptsPath,
 		"\nallowed_to_delete_files :", allowedToDeleteFiles,
 		"\nskip_storage :", skipStorage,
-		"\nmax_job_number :", maxJobNumber)
+		"\nmax_job_number :", maxJobNumber,
+		"\ndefault_s3_endpoint :", defaultS3Endpoint)
 }
