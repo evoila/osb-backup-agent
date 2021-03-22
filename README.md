@@ -69,8 +69,9 @@ The upload or download functionality can be skipped by using the `skipStorage` f
 |S3_ENDPOINT|endpoint|
 |S3_REGION|region|
 |S3_AUTHKEY|authKey|
-|S3_AUTHSECRET|authSecret|
 |S3_SKIPSSL|skipSSL|
+|S3_AUTHSECRET|authSecret|
+|S3_FILENAMEPREFIX|filenamePrefix|
 
 |Environment variable key for SWIFT| Field in destination body|
 |----|----|

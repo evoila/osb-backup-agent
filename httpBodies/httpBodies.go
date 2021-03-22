@@ -358,15 +358,16 @@ func GetDestinationInformationAsEnvVarStringSlice(skipStorage bool, body Destina
 	}
 
 	if body.Type == "S3" {
-		list := make([]string, 5)
+		list := make([]string, 7)
 		list[0] = getAsEnvVar(body.Type+"_BUCKET", body.Bucket)
 		list[1] = getAsEnvVar(body.Type+"_ENDPOINT", body.Region)
 		list[2] = getAsEnvVar(body.Type+"_REGION", body.Endpoint)
 		list[3] = getAsEnvVar(body.Type+"_AUTHKEY", body.AuthKey)
 		list[4] = getAsEnvVar(body.Type+"_SKIPSSL", body.SkipSSL)
 		list[5] = getAsEnvVar(body.Type+"_AUTHSECRET", body.AuthSecret)
+		list[6] = getAsEnvVar(body.Type+"_FILENAMEPREFIX", body.FilenamePrefix)
 
-		log.Println("Adding as destination information:", list[0], list[1], list[2], list[3], list[4], body.Type+"_AUTHSECRET=[redacted]")
+		log.Println("Adding as destination information:", list[0], list[1], list[2], list[3], list[4], body.Type+"_AUTHSECRET=[redacted]", list[6])
 
 		return list
 	} else if body.Type == "SWIFT" {
