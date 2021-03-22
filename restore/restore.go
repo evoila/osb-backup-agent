@@ -119,6 +119,10 @@ func HandleAsyncRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if !utils.IsS3AndPrefixDoesNotEndWithSlash(w, r, body.Destination) {
+			return
+		}
+
 		job, err := jobs.AddNewRestoreJob(body.Id)
 		if err != nil {
 			errorlog.LogError("Creating a new job failed due to '", err.Error(), "'")
