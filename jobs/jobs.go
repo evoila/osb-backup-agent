@@ -74,7 +74,7 @@ func AddNewBackupJob(UUID string) (*httpBodies.BackupResponse, error) {
 	log.Println("Accessing backup mutex for adding a new job.")
 	backupMutex.Acquire()
 
-	newJob := &httpBodies.BackupResponse{Status: "Running"}
+	newJob := &httpBodies.BackupResponse{Status: "RUNNING"}
 	backupJobs[UUID] = newJob
 
 	log.Println("Unlocking backup mutex after adding a new job.")
@@ -137,7 +137,7 @@ func AddNewRestoreJob(UUID string) (*httpBodies.RestoreResponse, error) {
 	log.Println("Accessing restore mutex for adding a new job.")
 	restoreMutex.Acquire()
 
-	newJob := &httpBodies.RestoreResponse{Status: "Running"}
+	newJob := &httpBodies.RestoreResponse{Status: "RUNNING"}
 	restoreJobs[UUID] = newJob
 
 	log.Println("Unlocking restore mutex after adding a new job.")
